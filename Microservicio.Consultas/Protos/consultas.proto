@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+option csharp_namespace = "Microservicio.Consultas.Protos";
+
+service ConsultasService {
+  rpc ObtenerConsultaPorId (ConsultaPorIdRequest) returns (ConsultaResponse);
+}
+
+message ConsultaPorIdRequest {
+  int32 id_consulta_medica = 1;
+}
+
+message ConsultaResponse {
+  int32 id_consulta_medica = 1;
+  string fecha = 2;
+  string hora = 3;
+  string motivo = 4;
+  string diagnostico = 5;
+  string tratamiento = 6;
+  int32 id_paciente = 7;
+  int32 id_medico = 8;
+}

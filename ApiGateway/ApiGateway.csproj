@@ -20,6 +20,11 @@
 
   <ItemGroup>
     <Protobuf Include="Protos\auth.proto" GrpcServices="Client" />
+    <Protobuf Include="..\Microservicio.Administracion\Protos\medicos.proto" GrpcServices="Client" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Microservicio.Administracion\Microservicio.Administracion.csproj" />
   </ItemGroup>
 
 </Project>

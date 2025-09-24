@@ -1,14 +1,38 @@
+using Microservicio.Administracion.Data;
 using Microservicio.Administracion.Services;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+// Configurar Entity Framework con MySQL/MariaDB
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
+    ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+
+builder.Services.AddDbContext<AdministracionDbContext>(options =>
+    options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString)));
+
+// Agregar gRPC
 builder.Services.AddGrpc();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
-app.MapGrpcService<GreeterService>();
-app.MapGet("/", () => "Communication with gRPC endpoints must be made through a gRPC client. To learn how to create a client, visit: https://go.microsoft.com/fwlink/?linkid=2086909");
+// Verificar conexión a la base de datos existente
+using (var scope = app.Services.CreateScope())
+{
+    var context = scope.ServiceProvider.GetRequiredService<AdministracionDbContext>();
+    try
+    {
+        context.Database.CanConnect();
+        app.Logger.LogInformation("Conexión a base de datos existente verificada exitosamente");
+    }
+    catch (Exception ex)
+    {
+        app.Logger.LogError(ex, "Error al conectar con la base de datos existente");
+    }
+}
+
+// Endpoints gRPC
+app.MapGrpcService<MedicosService>();
+app.MapGet("/", () => "Microservicio de Administración - Hospital Central. Comuníquese con los puntos finales de gRPC a través de un cliente gRPC.");
 
 app.Run();

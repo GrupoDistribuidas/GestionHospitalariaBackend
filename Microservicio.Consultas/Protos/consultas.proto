@@ -4,7 +4,13 @@ option csharp_namespace = "Microservicio.Consultas.Protos";
 
 service ConsultasService {
   rpc ObtenerConsultaPorId (ConsultaPorIdRequest) returns (ConsultaResponse);
+  rpc ObtenerTodasConsultas (Empty) returns (ConsultasListResponse);
+  rpc InsertarConsulta (InsertarConsultaRequest) returns (ConsultaResponse);
+  rpc ActualizarConsulta (ActualizarConsultaRequest) returns (ConsultaResponse);
+  rpc EliminarConsulta (EliminarConsultaRequest) returns (EliminarConsultaResponse);
 }
+
+message Empty {}
 
 message ConsultaPorIdRequest {
   int32 id_consulta_medica = 1;
@@ -19,4 +25,37 @@ message ConsultaResponse {
   string tratamiento = 6;
   int32 id_paciente = 7;
   int32 id_medico = 8;
+}
+
+message ConsultasListResponse {
+  repeated ConsultaResponse consultas = 1;
+}
+
+message InsertarConsultaRequest {
+  string fecha = 1;
+  string hora = 2;
+  string motivo = 3;
+  string diagnostico = 4;
+  string tratamiento = 5;
+  int32 id_paciente = 6;
+  int32 id_medico = 7;
+}
+
+message ActualizarConsultaRequest {
+  int32 id_consulta_medica = 1;
+  string fecha = 2;
+  string hora = 3;
+  string motivo = 4;
+  string diagnostico = 5;
+  string tratamiento = 6;
+  int32 id_paciente = 7;
+  int32 id_medico = 8;
+}
+
+message EliminarConsultaRequest {
+  int32 id_consulta_medica = 1;
+}
+
+message EliminarConsultaResponse {
+  bool exito = 1;
 }

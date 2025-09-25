@@ -1,0 +1,95 @@
+using Google.Protobuf.WellKnownTypes;
+using Microsoft.AspNetCore.Mvc;
+using AdminProtos = Microservicio.Administracion.Protos; // Alias
+using Grpc.Core;
+
+namespace ApiGateway.Controllers
+{
+    [ApiController]
+    [Route("api/[controller]")]
+    public class MedicosController : ControllerBase
+    {
+        private readonly AdminProtos.MedicosService.MedicosServiceClient _medicosClient;
+
+        // Inyección del cliente gRPC
+        public MedicosController(AdminProtos.MedicosService.MedicosServiceClient medicosClient)
+        {
+            _medicosClient = medicosClient;
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetAll()
+        {
+            try
+            {
+                var response = await _medicosClient.ObtenerTodosMedicosAsync(new Empty());
+                return Ok(response.Medicos);
+            }
+            catch (RpcException ex)
+            {
+                return StatusCode((int)ex.StatusCode, ex.Status.Detail);
+            }
+        }
+
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetById(int id)
+        {
+            try
+            {
+                var response = await _medicosClient.ObtenerMedicoPorIdAsync(
+                    new AdminProtos.MedicoPorIdRequest { IdEmpleado = id }
+                );
+                return Ok(response);
+            }
+            catch (RpcException ex)
+            {
+                return StatusCode((int)ex.StatusCode, ex.Status.Detail);
+            }
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> Create([FromBody] AdminProtos.InsertarMedicoRequest request)
+        {
+            try
+            {
+                var response = await _medicosClient.InsertarMedicoAsync(request);
+                return Ok(response);
+            }
+            catch (RpcException ex)
+            {
+                return StatusCode((int)ex.StatusCode, ex.Status.Detail);
+            }
+        }
+
+        [HttpPut("{id}")]
+        public async Task<IActionResult> Update(int id, [FromBody] AdminProtos.ActualizarMedicoRequest request)
+        {
+            try
+            {
+                request.IdEmpleado = id;
+                var response = await _medicosClient.ActualizarMedicoAsync(request);
+                return Ok(response);
+            }
+            catch (RpcException ex)
+            {
+                return StatusCode((int)ex.StatusCode, ex.Status.Detail);
+            }
+        }
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> Delete(int id)
+        {
+            try
+            {
+                var response = await _medicosClient.EliminarMedicoAsync(
+                    new AdminProtos.EliminarMedicoRequest { IdEmpleado = id }
+                );
+                return Ok(response);
+            }
+            catch (RpcException ex)
+            {
+                return StatusCode((int)ex.StatusCode, ex.Status.Detail);
+            }
+        }
+    }
+}

@@ -1,0 +1,57 @@
+syntax = "proto3";
+
+option csharp_namespace = "Microservicio.ClinicaExtension.Protos";
+
+import "google/protobuf/empty.proto";
+
+service PacientesService {
+  rpc ObtenerPacientePorId (PacientePorIdRequest) returns (PacienteResponse);
+  rpc InsertarPaciente (InsertarPacienteRequest) returns (PacienteResponse);
+  rpc ActualizarPaciente (ActualizarPacienteRequest) returns (PacienteResponse);
+  rpc EliminarPaciente (EliminarPacienteRequest) returns (EliminarPacienteResponse);
+  rpc ObtenerTodosPacientes (google.protobuf.Empty) returns (PacientesListResponse);
+}
+
+// Requests
+message PacientePorIdRequest {
+  int32 id_paciente = 1;
+}
+
+message InsertarPacienteRequest {
+  string nombre = 1;
+  string cedula = 2;
+  string fecha_nacimiento = 3;
+  string telefono = 4;
+  string direccion = 5;
+}
+
+message ActualizarPacienteRequest {
+  int32 id_paciente = 1;
+  string nombre = 2;
+  string cedula = 3;
+  string fecha_nacimiento = 4;
+  string telefono = 5;
+  string direccion = 6;
+}
+
+message EliminarPacienteRequest {
+  int32 id_paciente = 1;
+}
+
+// Responses
+message PacienteResponse {
+  int32 id_paciente = 1;
+  string nombre = 2;
+  string cedula = 3;
+  string fecha_nacimiento = 4;
+  string telefono = 5;
+  string direccion = 6;
+}
+
+message PacientesListResponse {
+  repeated PacienteResponse pacientes = 1;
+}
+
+message EliminarPacienteResponse {
+  bool exito = 1;
+}

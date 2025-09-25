@@ -54,6 +54,7 @@ using (var scope = app.Services.CreateScope())
 // Endpoints gRPC
 app.MapGrpcService<MedicosService>();
 app.MapGrpcService<PacientesServiceImpl>();
+app.MapGrpcService<EspecialidadesServiceImpl>();
 
 app.MapGet("/", () => "Microservicio de Administración - Hospital Central. Comuníquese con los puntos finales de gRPC a través de un cliente gRPC.");
 

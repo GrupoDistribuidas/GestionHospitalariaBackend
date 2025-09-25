@@ -130,6 +130,130 @@ namespace Microservicio.Consultas.Services
             return new EliminarConsultaResponse { Exito = true };
         }
 
+        public override async Task<ReporteConsultasPorMedicoResponse> ObtenerReporteConsultasPorMedico(ReporteConsultasPorMedicoRequest request, ServerCallContext context)
+        {
+            try
+            {
+                // Base query para consultas
+                var consultasQuery = _dbContext.ConsultasMedicas.AsQueryable();
+
+                // Aplicar filtros
+                if (request.IdMedico > 0)
+                {
+                    consultasQuery = consultasQuery.Where(c => c.IdMedico == request.IdMedico);
+                }
+
+                if (!string.IsNullOrEmpty(request.FechaInicio))
+                {
+                    var fechaInicio = DateTime.Parse(request.FechaInicio);
+                    consultasQuery = consultasQuery.Where(c => c.Fecha >= fechaInicio);
+                }
+
+                if (!string.IsNullOrEmpty(request.FechaFin))
+                {
+                    var fechaFin = DateTime.Parse(request.FechaFin);
+                    consultasQuery = consultasQuery.Where(c => c.Fecha <= fechaFin);
+                }
+
+                if (!string.IsNullOrEmpty(request.Motivo))
+                {
+                    consultasQuery = consultasQuery.Where(c => c.Motivo != null && c.Motivo.Contains(request.Motivo));
+                }
+
+                if (!string.IsNullOrEmpty(request.Diagnostico))
+                {
+                    consultasQuery = consultasQuery.Where(c => c.Diagnostico != null && c.Diagnostico.Contains(request.Diagnostico));
+                }
+
+                var consultas = await consultasQuery.ToListAsync();
+
+                // Obtener médicos únicos de las consultas
+                var medicosIds = consultas.Where(c => c.IdMedico.HasValue && c.IdMedico.Value > 0).Select(c => c.IdMedico!.Value).Distinct().ToList();
+
+                var reporteResponse = new ReporteConsultasPorMedicoResponse
+                {
+                    TotalConsultasGeneral = consultas.Count,
+                    FechaGeneracion = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")
+                };
+
+                foreach (var medicoId in medicosIds)
+                {
+                    try
+                    {
+                        // Obtener información del médico desde el microservicio de administración
+                        var medicoInfo = await _medicosClient.ObtenerMedicoPorIdAsync(new MedicoPorIdRequest { IdEmpleado = medicoId });
+
+                        var consultasDelMedico = consultas.Where(c => c.IdMedico == medicoId).ToList();
+
+                        var medicoReporte = new MedicoReporteResponse
+                        {
+                            IdMedico = medicoId,
+                            NombreMedico = medicoInfo.Nombre,
+                            IdEspecialidad = medicoInfo.IdEspecialidad,
+                            NombreEspecialidad = $"Especialidad ID: {medicoInfo.IdEspecialidad}", // Temporal hasta obtener nombre real
+                            TotalConsultas = consultasDelMedico.Count
+                        };
+
+                        // Agregar consultas del médico con información del paciente
+                        foreach (var consulta in consultasDelMedico)
+                        {
+                            try
+                            {
+                                // Obtener información del paciente
+                                var pacienteInfo = await _pacientesClient.ObtenerPacientePorIdAsync(new PacientePorIdRequest { IdPaciente = consulta.IdPaciente });
+
+                                var consultaReporte = new ConsultaReporteResponse
+                                {
+                                    IdConsultaMedica = consulta.IdConsultaMedica,
+                                    Fecha = consulta.Fecha.ToString("yyyy-MM-dd"),
+                                    Hora = consulta.Hora.ToString(),
+                                    Motivo = consulta.Motivo ?? string.Empty,
+                                    Diagnostico = consulta.Diagnostico ?? string.Empty,
+                                    Tratamiento = consulta.Tratamiento ?? string.Empty,
+                                    IdPaciente = consulta.IdPaciente,
+                                    IdMedico = medicoId,
+                                    NombrePaciente = pacienteInfo.Nombre
+                                };
+
+                                medicoReporte.Consultas.Add(consultaReporte);
+                            }
+                            catch
+                            {
+                                // Si no se puede obtener info del paciente, agregar la consulta sin el nombre
+                                var consultaReporte = new ConsultaReporteResponse
+                                {
+                                    IdConsultaMedica = consulta.IdConsultaMedica,
+                                    Fecha = consulta.Fecha.ToString("yyyy-MM-dd"),
+                                    Hora = consulta.Hora.ToString(),
+                                    Motivo = consulta.Motivo ?? string.Empty,
+                                    Diagnostico = consulta.Diagnostico ?? string.Empty,
+                                    Tratamiento = consulta.Tratamiento ?? string.Empty,
+                                    IdPaciente = consulta.IdPaciente,
+                                    IdMedico = medicoId,
+                                    NombrePaciente = "Paciente no encontrado"
+                                };
+
+                                medicoReporte.Consultas.Add(consultaReporte);
+                            }
+                        }
+
+                        reporteResponse.Medicos.Add(medicoReporte);
+                    }
+                    catch
+                    {
+                        // Si no se puede obtener info del médico, continuar con el siguiente
+                        continue;
+                    }
+                }
+
+                return reporteResponse;
+            }
+            catch (Exception ex)
+            {
+                throw new RpcException(new Status(StatusCode.Internal, $"Error al generar reporte: {ex.Message}"));
+            }
+        }
+
         private ConsultaResponse MapToResponse(ConsultaMedica consulta)
         {
             return new ConsultaResponse

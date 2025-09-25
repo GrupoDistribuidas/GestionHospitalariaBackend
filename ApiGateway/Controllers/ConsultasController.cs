@@ -1,11 +1,13 @@
 using Microsoft.AspNetCore.Mvc;
 using Microservicio.Consultas.Protos;
 using Grpc.Core;
+using Microsoft.AspNetCore.Authorization;
 
 namespace ApiGateway.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize] // Requiere autenticación JWT para todos los endpoints
     public class ConsultasController : ControllerBase
     {
         private readonly ConsultasService.ConsultasServiceClient _client;

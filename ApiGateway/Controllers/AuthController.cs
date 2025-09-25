@@ -150,6 +150,31 @@ namespace ApiGateway.Controllers
             }
         }
 
+        [HttpGet("user-info")]
+        [Microsoft.AspNetCore.Authorization.Authorize]
+        public IActionResult GetUserInfo()
+        {
+            try
+            {
+                // Obtener información del token JWT actual
+                var username = User.Identity?.Name;
+                var claims = User.Claims.Select(c => new { c.Type, c.Value }).ToList();
+
+                return Ok(new
+                {
+                    username = username,
+                    isAuthenticated = User.Identity?.IsAuthenticated ?? false,
+                    claims = claims,
+                    timestamp = DateTime.UtcNow
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error obteniendo información del usuario");
+                return StatusCode(500, new { error = "Error interno del servidor" });
+            }
+        }
+
         [HttpGet("health")]
         public IActionResult Health()
         {

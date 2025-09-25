@@ -2,11 +2,13 @@ using Google.Protobuf.WellKnownTypes;
 using Microsoft.AspNetCore.Mvc;
 using ClinicaProtos = Microservicio.ClinicaExtension.Protos; // Alias para evitar conflicto
 using Grpc.Core;
+using Microsoft.AspNetCore.Authorization;
 
 namespace ApiGateway.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize] // Requiere autenticación JWT para todos los endpoints
     public class PacientesController : ControllerBase
     {
         private readonly ClinicaProtos.PacientesService.PacientesServiceClient _pacientesClient;

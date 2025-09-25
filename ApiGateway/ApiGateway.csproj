@@ -29,6 +29,7 @@
     <Protobuf Include="Protos\auth.proto" GrpcServices="Client" />
     <Protobuf Include="..\Microservicio.Administracion\Protos\medicos.proto" GrpcServices="Client" />
     <Protobuf Include="..\Microservicio.Administracion\Protos\pacientes.proto" GrpcServices="Client" />
+    <Protobuf Include="..\Microservicio.Administracion\Protos\especialidades.proto" GrpcServices="Client" />
     <Protobuf Include="..\Microservicio.Consultas\Protos\consultas.proto" GrpcServices="Client" />
   </ItemGroup>
 

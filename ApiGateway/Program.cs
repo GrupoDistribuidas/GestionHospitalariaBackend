@@ -13,9 +13,9 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 // JWT
-var jwtKey = builder.Configuration["Jwt:Key"] 
+var jwtKey = builder.Configuration["Jwt:Key"]
     ?? throw new InvalidOperationException("Jwt:Key no configurada");
-var jwtIssuer = builder.Configuration["Jwt:Issuer"] 
+var jwtIssuer = builder.Configuration["Jwt:Issuer"]
     ?? throw new InvalidOperationException("Jwt:Issuer no configurada");
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -40,8 +40,8 @@ builder.Services.AddCors(options =>
     options.AddPolicy("AllowFrontend", policy =>
     {
         policy.WithOrigins(
-                "http://localhost:3000", 
-                "http://localhost:4200", 
+                "http://localhost:3000",
+                "http://localhost:4200",
                 "http://localhost:5173",
                 "http://localhost:5088",   // API Gateway HTTP
                 "https://localhost:7221"   // API Gateway HTTPS
@@ -66,6 +66,11 @@ builder.Services.AddGrpcClient<PacientesService.PacientesServiceClient>(o =>
 builder.Services.AddGrpcClient<ConsultasService.ConsultasServiceClient>(o =>
 {
     o.Address = new Uri("http://localhost:5105"); // Microservicio Consultas
+});
+
+builder.Services.AddGrpcClient<EspecialidadesService.EspecialidadesServiceClient>(o =>
+{
+    o.Address = new Uri("http://localhost:5100"); // Microservicio Administracion
 });
 
 var app = builder.Build();

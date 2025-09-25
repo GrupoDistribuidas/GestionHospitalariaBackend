@@ -1,0 +1,43 @@
+syntax = "proto3";
+
+import "google/protobuf/empty.proto"; // Import necesario para google.protobuf.Empty
+
+option csharp_namespace = "Microservicio.Administracion.Protos";
+
+service EspecialidadesService {
+  rpc ObtenerEspecialidadPorId(EspecialidadPorIdRequest) returns (EspecialidadResponse);
+  rpc ObtenerTodasEspecialidades(google.protobuf.Empty) returns (EspecialidadesListResponse);
+  rpc InsertarEspecialidad(InsertarEspecialidadRequest) returns (EspecialidadResponse);
+  rpc ActualizarEspecialidad(ActualizarEspecialidadRequest) returns (EspecialidadResponse);
+  rpc EliminarEspecialidad(EliminarEspecialidadRequest) returns (EliminarEspecialidadResponse);
+}
+
+message EspecialidadPorIdRequest {
+  int32 id_especialidad = 1;
+}
+
+message EspecialidadResponse {
+  int32 id_especialidad = 1;
+  string nombre = 2;
+}
+
+message EspecialidadesListResponse {
+  repeated EspecialidadResponse especialidades = 1;
+}
+
+message InsertarEspecialidadRequest {
+  string nombre = 1;
+}
+
+message ActualizarEspecialidadRequest {
+  int32 id_especialidad = 1;
+  string nombre = 2;
+}
+
+message EliminarEspecialidadRequest {
+  int32 id_especialidad = 1;
+}
+
+message EliminarEspecialidadResponse {
+  bool exito = 1;
+}

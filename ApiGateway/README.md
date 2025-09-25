@@ -273,14 +273,217 @@ El API Gateway registra:
 | 401 | Unauthorized | Token inválido o faltante |
 | 500 | Internal Server Error | Error en microservicio o conexión |
 
-## 🔮 Próximos Pasos
+# API de Reportes de Consultas Médicas
 
-- [ ] Implementar Rate Limiting
-- [ ] Agregar Circuit Breaker pattern
-- [ ] Implementar caching Redis
-- [ ] Agregar más microservicios (Administración, Consultas)
-- [ ] Implementar API versioning
-- [ ] Métricas con Prometheus
+## Descripción
+Este API proporciona endpoints para generar reportes de consultas médicas por médico con capacidades de filtrado avanzadas usando JSON en el body de las peticiones.
+
+## Endpoints Disponibles
+
+### 1. Reporte de Consultas por Médico
+**POST** `/api/reportes/consultas-por-medico`
+
+Obtiene un reporte detallado de todas las consultas realizadas por cada médico con filtros opcionales enviados en el body como JSON.
+
+#### Body de la petición (JSON):
+```json
+{
+  "idMedico": 123,                    // Opcional - ID del médico específico
+  "fechaInicio": "2024-01-01",        // Opcional - Fecha inicio formato yyyy-MM-dd
+  "fechaFin": "2024-12-31",           // Opcional - Fecha fin formato yyyy-MM-dd
+  "motivo": "control",                // Opcional - Filtro por motivo de consulta
+  "diagnostico": "hipertensión"       // Opcional - Filtro por diagnóstico
+}
+```
+
+#### Ejemplos de uso:
+
+1. **Obtener todas las consultas de todos los médicos:**
+   ```json
+   POST /api/reportes/consultas-por-medico
+   Content-Type: application/json
+   
+   {}
+   ```
+
+2. **Filtrar por médico específico:**
+   ```json
+   POST /api/reportes/consultas-por-medico
+   Content-Type: application/json
+   
+   {
+     "idMedico": 123
+   }
+   ```
+
+3. **Filtrar por rango de fechas:**
+   ```json
+   POST /api/reportes/consultas-por-medico
+   Content-Type: application/json
+   
+   {
+     "fechaInicio": "2024-01-01",
+     "fechaFin": "2024-12-31"
+   }
+   ```
+
+4. **Filtrar por motivo y diagnóstico:**
+   ```json
+   POST /api/reportes/consultas-por-medico
+   Content-Type: application/json
+   
+   {
+     "motivo": "urgencia",
+     "diagnostico": "hipertensión"
+   }
+   ```
+
+5. **Filtro combinado completo:**
+   ```json
+   POST /api/reportes/consultas-por-medico
+   Content-Type: application/json
+   
+   {
+     "idMedico": 123,
+     "fechaInicio": "2024-06-01",
+     "fechaFin": "2024-06-30",
+     "motivo": "control",
+     "diagnostico": "diabetes"
+   }
+   ```
+
+#### Respuesta:
+```json
+{
+  "resumen": {
+    "totalConsultasGeneral": 250,
+    "totalMedicos": 8,
+    "fechaGeneracion": "2024-09-25 14:30:00",
+    "filtros": {
+      "medicoId": null,
+      "fechaInicio": "2024-01-01",
+      "fechaFin": "2024-12-31",
+      "especialidadId": null,
+      "tipoConsulta": null
+    }
+  },
+  "medicos": [
+    {
+      "idMedico": 123,
+      "nombreMedico": "Dr. Juan Pérez",
+      "idEspecialidad": 2,
+      "nombreEspecialidad": "Especialidad ID: 2",
+      "totalConsultas": 45,
+      "consultas": [
+        {
+          "idConsulta": 1001,
+          "fecha": "2024-09-15",
+          "hora": "09:30:00",
+          "motivo": "Control rutinario",
+          "diagnostico": "Paciente en buen estado",
+          "tratamiento": "Continuar medicación actual",
+          "paciente": {
+            "idPaciente": 456,
+            "nombrePaciente": "María García"
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+### 2. Estadísticas de Consultas
+**POST** `/api/reportes/estadisticas-consultas`
+
+Obtiene estadísticas resumidas de las consultas médicas usando JSON en el body.
+
+#### Body de la petición (JSON):
+```json
+{
+  "fechaInicio": "2024-01-01",        // Opcional - Fecha inicio formato yyyy-MM-dd
+  "fechaFin": "2024-12-31"            // Opcional - Fecha fin formato yyyy-MM-dd
+}
+```
+
+#### Ejemplos de uso:
+
+1. **Estadísticas generales:**
+   ```json
+   POST /api/reportes/estadisticas-consultas
+   Content-Type: application/json
+   
+   {}
+   ```
+
+2. **Estadísticas por período:**
+   ```json
+   POST /api/reportes/estadisticas-consultas
+   Content-Type: application/json
+   
+   {
+     "fechaInicio": "2024-01-01",
+     "fechaFin": "2024-06-30"
+   }
+   ```
+
+#### Respuesta:
+```json
+{
+  "totalConsultas": 250,
+  "totalMedicos": 8,
+  "fechaGeneracion": "2024-09-25 14:30:00",
+  "promedioConsultasPorMedico": 31.25,
+  "medicoConMasConsultas": "Dr. Juan Pérez",
+  "maxConsultasPorMedico": 45,
+  "especialidades": [
+    {
+      "idEspecialidad": 2,
+      "nombreEspecialidad": "Especialidad ID: 2",
+      "totalMedicos": 3,
+      "totalConsultas": 120
+    },
+    {
+      "idEspecialidad": 1,
+      "nombreEspecialidad": "Especialidad ID: 1",
+      "totalMedicos": 2,
+      "totalConsultas": 80
+    }
+  ]
+}
+```
+
+## Códigos de Respuesta
+
+- **200 OK**: Consulta exitosa
+- **400 Bad Request**: Parámetros inválidos (formato de fecha incorrecto, fecha inicio mayor que fecha fin)
+- **404 Not Found**: No se encontraron datos para los filtros especificados
+- **500 Internal Server Error**: Error interno del servidor
+
+## Notas Importantes
+
+1. **Formato de Fechas**: Todas las fechas deben estar en formato `yyyy-MM-dd` (ISO 8601)
+2. **Filtros Opcionales**: Todos los parámetros de filtro son opcionales
+3. **Rendimiento**: Para rangos de fechas muy amplios, considerar paginar los resultados
+4. **Dependencias**: Requiere que los microservicios de Administración y Consultas estén funcionando
+5. **Especialidades**: Actualmente se muestra como "Especialidad ID: X" - se puede mejorar para mostrar nombres reales
+
+## Casos de Uso Comunes
+
+1. **Reporte mensual por médico**: Filtrar por médico específico y rango de un mes
+2. **Análisis de productividad**: Usar estadísticas para comparar médicos
+3. **Auditoría por especialidad**: Filtrar por especialidad específica
+4. **Reportes de urgencias**: Filtrar por tipo de consulta "urgencia"
+5. **Análisis temporal**: Comparar períodos usando diferentes rangos de fechas
+
+## Mejoras Futuras
+
+1. Agregar paginación para grandes volúmenes de datos
+2. Implementar caché para consultas frecuentes
+3. Agregar exportación a PDF/Excel
+4. Incluir nombres reales de especialidades
+5. Agregar métricas de tiempo promedio por consulta
+6. Implementar filtros adicionales (estado del paciente, duración de consulta, etc.)
 
 ## 🛠️ Troubleshooting
 

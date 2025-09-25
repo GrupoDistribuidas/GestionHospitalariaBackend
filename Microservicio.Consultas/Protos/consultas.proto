@@ -10,6 +10,7 @@ service ConsultasService {
   rpc InsertarConsulta (InsertarConsultaRequest) returns (ConsultaResponse);
   rpc ActualizarConsulta (ActualizarConsultaRequest) returns (ConsultaResponse);
   rpc EliminarConsulta (EliminarConsultaRequest) returns (EliminarConsultaResponse);
+  rpc ObtenerReporteConsultasPorMedico (ReporteConsultasPorMedicoRequest) returns (ReporteConsultasPorMedicoResponse);
 }
 
 // Requests
@@ -60,4 +61,40 @@ message ConsultasListResponse {
 
 message EliminarConsultaResponse {
   bool exito = 1;
+}
+
+// Mensajes para reportes
+message ReporteConsultasPorMedicoRequest {
+  int32 id_medico = 1; // Opcional - para filtrar por médico específico
+  string fecha_inicio = 2; // Opcional - formato YYYY-MM-DD
+  string fecha_fin = 3; // Opcional - formato YYYY-MM-DD
+  string motivo = 4; // Opcional - para filtrar por motivo de consulta
+  string diagnostico = 5; // Opcional - para filtrar por diagnóstico
+}
+
+message ConsultaReporteResponse {
+  int32 id_consulta_medica = 1;
+  string fecha = 2;
+  string hora = 3;
+  string motivo = 4;
+  string diagnostico = 5;
+  string tratamiento = 6;
+  int32 id_paciente = 7;
+  int32 id_medico = 8;
+  string nombre_paciente = 9; // Para incluir en el reporte
+}
+
+message MedicoReporteResponse {
+  int32 id_medico = 1;
+  string nombre_medico = 2;
+  int32 id_especialidad = 3;
+  string nombre_especialidad = 4;
+  int32 total_consultas = 5;
+  repeated ConsultaReporteResponse consultas = 6;
+}
+
+message ReporteConsultasPorMedicoResponse {
+  repeated MedicoReporteResponse medicos = 1;
+  int32 total_consultas_general = 2;
+  string fecha_generacion = 3;
 }

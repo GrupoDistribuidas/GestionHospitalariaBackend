@@ -52,7 +52,7 @@ using (var scope = app.Services.CreateScope())
 }
 
 // Endpoints gRPC
-app.MapGrpcService<MedicosService>();
+app.MapGrpcService<MedicosServiceImpl>();
 app.MapGrpcService<PacientesServiceImpl>();
 app.MapGrpcService<EspecialidadesServiceImpl>();
 

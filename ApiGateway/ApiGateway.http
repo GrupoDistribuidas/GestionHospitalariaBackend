@@ -1,4 +1,42 @@
+### API Gateway - Pruebas de Autenticación
 @ApiGateway_HostAddress = http://localhost:5088
+
+# Health Check del API Gateway
+GET {{ApiGateway_HostAddress}}/health
+
+###
+
+# Health Check del controlador de autenticación
+GET {{ApiGateway_HostAddress}}/api/auth/health
+
+###
+
+# Login - Obtener token JWT
+POST {{ApiGateway_HostAddress}}/api/auth/login
+Content-Type: application/json
+
+{
+  "username": "admin",
+  "password": "admin123"
+}
+
+###
+
+# Validar token JWT
+POST {{ApiGateway_HostAddress}}/api/auth/validate-token
+Content-Type: application/json
+
+{
+  "token": "Tu_JWT_Token_Aqui"
+}
+
+###
+
+# Ejemplo de petición protegida (requiere token válido)
+GET {{ApiGateway_HostAddress}}/api/protected-endpoint
+Authorization: Bearer Tu_JWT_Token_Aqui
+
+###teway_HostAddress = http://localhost:5088
 
 GET {{ApiGateway_HostAddress}}/weatherforecast/
 Accept: application/json

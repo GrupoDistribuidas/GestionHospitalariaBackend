@@ -7,7 +7,30 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- gRPC Packages -->
+    <PackageReference Include="Grpc.Net.ClientFactory" Version="2.65.0" />
+    <PackageReference Include="Grpc.Net.Client" Version="2.65.0" />
+    <PackageReference Include="Google.Protobuf" Version="3.27.0" />
+    <PackageReference Include="Grpc.Tools" Version="2.65.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+
+    <!-- Swagger / OpenAPI -->
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.8" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="7.2.0" />
+
+    <!-- JWT Authentication -->
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Protobuf Clients -->
+    <Protobuf Include="Protos\auth.proto" GrpcServices="Client" />
+    <Protobuf Include="..\Microservicio.Administracion\Protos\medicos.proto" GrpcServices="Client" />
+    <Protobuf Include="..\Microservicio.Administracion\Protos\pacientes.proto" GrpcServices="Client" />
+    <Protobuf Include="..\Microservicio.Administracion\Protos\especialidades.proto" GrpcServices="Client" />
+    <Protobuf Include="..\Microservicio.Consultas\Protos\consultas.proto" GrpcServices="Client" />
   </ItemGroup>
 
 </Project>

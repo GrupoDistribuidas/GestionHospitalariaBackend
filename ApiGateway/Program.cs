@@ -3,11 +3,11 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Microservicio.Administracion.Protos;
 using Microservicio.ClinicaExtension.Protos;
-
+using Microservicio.Consultas.Protos;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+// Controllers y Swagger
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -54,7 +54,12 @@ builder.Services.AddGrpcClient<MedicosService.MedicosServiceClient>(o =>
 
 builder.Services.AddGrpcClient<PacientesService.PacientesServiceClient>(o =>
 {
-    o.Address = new Uri("http://localhost:5100"); // Microservicio ClinicaExtension
+    o.Address = new Uri("http://localhost:5100"); // Microservicio Administracion
+});
+
+builder.Services.AddGrpcClient<ConsultasService.ConsultasServiceClient>(o =>
+{
+    o.Address = new Uri("http://localhost:5105"); // Microservicio Consultas
 });
 
 var app = builder.Build();
@@ -70,9 +75,10 @@ app.UseHttpsRedirection();
 app.UseCors("AllowFrontend");
 app.UseAuthentication();
 app.UseAuthorization();
+
 app.MapControllers();
 
-// Health endpoint
+// Health
 app.MapGet("/health", () => new { status = "OK", service = "ApiGateway", timestamp = DateTime.UtcNow });
 
 app.Run();

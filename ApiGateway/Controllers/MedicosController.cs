@@ -11,7 +11,6 @@ namespace ApiGateway.Controllers
     {
         private readonly AdminProtos.MedicosService.MedicosServiceClient _medicosClient;
 
-        // Inyección del cliente gRPC
         public MedicosController(AdminProtos.MedicosService.MedicosServiceClient medicosClient)
         {
             _medicosClient = medicosClient;
@@ -27,7 +26,7 @@ namespace ApiGateway.Controllers
             }
             catch (RpcException ex)
             {
-                return StatusCode((int)ex.StatusCode, ex.Status.Detail);
+                return StatusCode(500, ex.Status.Detail);
             }
         }
 
@@ -43,7 +42,7 @@ namespace ApiGateway.Controllers
             }
             catch (RpcException ex)
             {
-                return StatusCode((int)ex.StatusCode, ex.Status.Detail);
+                return StatusCode(500, ex.Status.Detail);
             }
         }
 
@@ -57,7 +56,7 @@ namespace ApiGateway.Controllers
             }
             catch (RpcException ex)
             {
-                return StatusCode((int)ex.StatusCode, ex.Status.Detail);
+                return StatusCode(500, ex.Status.Detail);
             }
         }
 
@@ -72,7 +71,7 @@ namespace ApiGateway.Controllers
             }
             catch (RpcException ex)
             {
-                return StatusCode((int)ex.StatusCode, ex.Status.Detail);
+                return StatusCode(500, ex.Status.Detail);
             }
         }
 
@@ -88,7 +87,7 @@ namespace ApiGateway.Controllers
             }
             catch (RpcException ex)
             {
-                return StatusCode((int)ex.StatusCode, ex.Status.Detail);
+                return StatusCode(500, ex.Status.Detail);
             }
         }
     }

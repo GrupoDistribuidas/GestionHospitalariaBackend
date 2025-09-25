@@ -6,11 +6,11 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Microservicio.Administracion.Services
 {
-    public class MedicosService : Protos.MedicosService.MedicosServiceBase
+    public class MedicosServiceImpl : MedicosService.MedicosServiceBase
     {
         private readonly AdministracionDbContext _dbContext;
 
-        public MedicosService(AdministracionDbContext dbContext)
+        public MedicosServiceImpl(AdministracionDbContext dbContext)
         {
             _dbContext = dbContext;
         }
@@ -20,10 +20,11 @@ namespace Microservicio.Administracion.Services
             var medico = await _dbContext.Empleados.FindAsync(request.IdEmpleado);
             if (medico == null)
                 throw new RpcException(new Status(StatusCode.NotFound, "Médico no encontrado"));
+
             return MapToResponse(medico);
         }
 
-    public override async Task<MedicosListResponse> ObtenerTodosMedicos(Google.Protobuf.WellKnownTypes.Empty request, ServerCallContext context)
+        public override async Task<MedicosListResponse> ObtenerTodosMedicos(Google.Protobuf.WellKnownTypes.Empty request, ServerCallContext context)
         {
             var medicos = await _dbContext.Empleados.ToListAsync();
             var response = new MedicosListResponse();
@@ -33,6 +34,13 @@ namespace Microservicio.Administracion.Services
 
         public override async Task<MedicoResponse> InsertarMedico(InsertarMedicoRequest request, ServerCallContext context)
         {
+            // Validar existencia de la especialidad
+            var especialidad = await _dbContext.Especialidades
+                .FirstOrDefaultAsync(e => e.IdEspecialidad == request.IdEspecialidad);
+
+            if (especialidad == null)
+                throw new RpcException(new Status(StatusCode.InvalidArgument, $"La especialidad con ID {request.IdEspecialidad} no existe"));
+
             var medico = new Empleado
             {
                 IdCentroMedico = request.IdCentroMedico,
@@ -45,6 +53,7 @@ namespace Microservicio.Administracion.Services
                 Horario = request.Horario,
                 Estado = request.Estado
             };
+
             _dbContext.Empleados.Add(medico);
             await _dbContext.SaveChangesAsync();
             return MapToResponse(medico);
@@ -55,6 +64,13 @@ namespace Microservicio.Administracion.Services
             var medico = await _dbContext.Empleados.FindAsync(request.IdEmpleado);
             if (medico == null)
                 throw new RpcException(new Status(StatusCode.NotFound, "Médico no encontrado"));
+
+            // Validar existencia de la especialidad
+            var especialidad = await _dbContext.Especialidades
+                .FirstOrDefaultAsync(e => e.IdEspecialidad == request.IdEspecialidad);
+
+            if (especialidad == null)
+                throw new RpcException(new Status(StatusCode.InvalidArgument, $"La especialidad con ID {request.IdEspecialidad} no existe"));
 
             medico.IdCentroMedico = request.IdCentroMedico;
             medico.IdTipo = request.IdTipo;
@@ -75,6 +91,7 @@ namespace Microservicio.Administracion.Services
             var medico = await _dbContext.Empleados.FindAsync(request.IdEmpleado);
             if (medico == null)
                 throw new RpcException(new Status(StatusCode.NotFound, "Médico no encontrado"));
+
             _dbContext.Empleados.Remove(medico);
             await _dbContext.SaveChangesAsync();
             return new EliminarMedicoResponse { Exito = true };

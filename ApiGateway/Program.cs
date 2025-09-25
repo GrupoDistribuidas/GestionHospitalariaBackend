@@ -1,22 +1,22 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
-using ApiGateway.Middleware;
+using Microservicio.Administracion.Protos;
+using Microservicio.ClinicaExtension.Protos;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllers();
-
-// Configurar OpenAPI/Swagger
-builder.Services.AddOpenApi();
+builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Configurar autenticación JWT
-var jwtKey = builder.Configuration["Jwt:Key"] ?? 
-    throw new InvalidOperationException("Jwt:Key no configurada");
-var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? 
-    throw new InvalidOperationException("Jwt:Issuer no configurada");
+// JWT
+var jwtKey = builder.Configuration["Jwt:Key"] 
+    ?? throw new InvalidOperationException("Jwt:Key no configurada");
+var jwtIssuer = builder.Configuration["Jwt:Issuer"] 
+    ?? throw new InvalidOperationException("Jwt:Issuer no configurada");
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -27,56 +27,52 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
             ValidateIssuer = true,
             ValidIssuer = jwtIssuer,
-            ValidateAudience = false, // Permitir múltiples audiencias
+            ValidateAudience = false,
             ClockSkew = TimeSpan.Zero
         };
     });
 
-// Configurar autorización
 builder.Services.AddAuthorization();
 
-// Configurar CORS para el frontend
+// CORS
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.WithOrigins("http://localhost:3000", "http://localhost:4200", "http://localhost:5173") // React, Angular, Vite
+        policy.WithOrigins("http://localhost:3000", "http://localhost:4200", "http://localhost:5173")
               .AllowAnyMethod()
               .AllowAnyHeader()
               .AllowCredentials();
     });
 });
 
+// gRPC Clients
+builder.Services.AddGrpcClient<MedicosService.MedicosServiceClient>(o =>
+{
+    o.Address = new Uri("http://localhost:5100"); // Microservicio Administracion
+});
+
+builder.Services.AddGrpcClient<PacientesService.PacientesServiceClient>(o =>
+{
+    o.Address = new Uri("http://localhost:5100"); // Microservicio ClinicaExtension
+});
+
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// Middleware
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
     app.UseSwagger();
     app.UseSwaggerUI();
 }
 
 app.UseHttpsRedirection();
-
-// Configurar CORS
 app.UseCors("AllowFrontend");
-
-// Configurar autenticación y autorización
 app.UseAuthentication();
 app.UseAuthorization();
-
-// Usar middleware personalizado de validación de tokens (comentado por ahora)
-// app.UseTokenValidation();
-
-// Mapear controladores
 app.MapControllers();
 
-// Endpoint de salud general
-app.MapGet("/health", () => new { 
-    status = "OK", 
-    service = "ApiGateway", 
-    timestamp = DateTime.UtcNow 
-});
+// Health endpoint
+app.MapGet("/health", () => new { status = "OK", service = "ApiGateway", timestamp = DateTime.UtcNow });
 
 app.Run();

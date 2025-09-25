@@ -2,35 +2,19 @@ syntax = "proto3";
 
 option csharp_namespace = "Microservicio.Administracion.Protos";
 
+import "google/protobuf/empty.proto";
+
 service MedicosService {
   rpc ObtenerMedicoPorId (MedicoPorIdRequest) returns (MedicoResponse);
-  rpc ObtenerTodosMedicos (Empty) returns (MedicosListResponse);
   rpc InsertarMedico (InsertarMedicoRequest) returns (MedicoResponse);
   rpc ActualizarMedico (ActualizarMedicoRequest) returns (MedicoResponse);
   rpc EliminarMedico (EliminarMedicoRequest) returns (EliminarMedicoResponse);
+  rpc ObtenerTodosMedicos (google.protobuf.Empty) returns (MedicosListResponse);
 }
 
-message Empty {}
-
+// Requests
 message MedicoPorIdRequest {
   int32 id_empleado = 1;
-}
-
-message MedicoResponse {
-  int32 id_empleado = 1;
-  int32 id_centro_medico = 2;
-  int32 id_tipo = 3;
-  int32 id_especialidad = 4;
-  string nombre = 5;
-  string telefono = 6;
-  string email = 7;
-  double salario = 8;
-  string horario = 9;
-  string estado = 10;
-}
-
-message MedicosListResponse {
-  repeated MedicoResponse medicos = 1;
 }
 
 message InsertarMedicoRequest {
@@ -60,6 +44,24 @@ message ActualizarMedicoRequest {
 
 message EliminarMedicoRequest {
   int32 id_empleado = 1;
+}
+
+// Responses
+message MedicoResponse {
+  int32 id_empleado = 1;
+  int32 id_centro_medico = 2;
+  int32 id_tipo = 3;
+  int32 id_especialidad = 4;
+  string nombre = 5;
+  string telefono = 6;
+  string email = 7;
+  double salario = 8;
+  string horario = 9;
+  string estado = 10;
+}
+
+message MedicosListResponse {
+  repeated MedicoResponse medicos = 1;
 }
 
 message EliminarMedicoResponse {

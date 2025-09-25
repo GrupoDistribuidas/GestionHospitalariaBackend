@@ -1,20 +1,20 @@
 using Google.Protobuf.WellKnownTypes;
 using Microsoft.AspNetCore.Mvc;
-using AdminProtos = Microservicio.Administracion.Protos; // Alias
+using ClinicaProtos = Microservicio.ClinicaExtension.Protos; // Alias para evitar conflicto
 using Grpc.Core;
 
 namespace ApiGateway.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class MedicosController : ControllerBase
+    public class PacientesController : ControllerBase
     {
-        private readonly AdminProtos.MedicosService.MedicosServiceClient _medicosClient;
+        private readonly ClinicaProtos.PacientesService.PacientesServiceClient _pacientesClient;
 
         // Inyección del cliente gRPC
-        public MedicosController(AdminProtos.MedicosService.MedicosServiceClient medicosClient)
+        public PacientesController(ClinicaProtos.PacientesService.PacientesServiceClient pacientesClient)
         {
-            _medicosClient = medicosClient;
+            _pacientesClient = pacientesClient;
         }
 
         [HttpGet]
@@ -22,8 +22,8 @@ namespace ApiGateway.Controllers
         {
             try
             {
-                var response = await _medicosClient.ObtenerTodosMedicosAsync(new Empty());
-                return Ok(response.Medicos);
+                var response = await _pacientesClient.ObtenerTodosPacientesAsync(new Empty());
+                return Ok(response.Pacientes);
             }
             catch (RpcException ex)
             {
@@ -36,8 +36,8 @@ namespace ApiGateway.Controllers
         {
             try
             {
-                var response = await _medicosClient.ObtenerMedicoPorIdAsync(
-                    new AdminProtos.MedicoPorIdRequest { IdEmpleado = id }
+                var response = await _pacientesClient.ObtenerPacientePorIdAsync(
+                    new ClinicaProtos.PacientePorIdRequest { IdPaciente = id }
                 );
                 return Ok(response);
             }
@@ -48,11 +48,11 @@ namespace ApiGateway.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> Create([FromBody] AdminProtos.InsertarMedicoRequest request)
+        public async Task<IActionResult> Create([FromBody] ClinicaProtos.InsertarPacienteRequest request)
         {
             try
             {
-                var response = await _medicosClient.InsertarMedicoAsync(request);
+                var response = await _pacientesClient.InsertarPacienteAsync(request);
                 return Ok(response);
             }
             catch (RpcException ex)
@@ -62,12 +62,12 @@ namespace ApiGateway.Controllers
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> Update(int id, [FromBody] AdminProtos.ActualizarMedicoRequest request)
+        public async Task<IActionResult> Update(int id, [FromBody] ClinicaProtos.ActualizarPacienteRequest request)
         {
             try
             {
-                request.IdEmpleado = id;
-                var response = await _medicosClient.ActualizarMedicoAsync(request);
+                request.IdPaciente = id;
+                var response = await _pacientesClient.ActualizarPacienteAsync(request);
                 return Ok(response);
             }
             catch (RpcException ex)
@@ -81,8 +81,8 @@ namespace ApiGateway.Controllers
         {
             try
             {
-                var response = await _medicosClient.EliminarMedicoAsync(
-                    new AdminProtos.EliminarMedicoRequest { IdEmpleado = id }
+                var response = await _pacientesClient.EliminarPacienteAsync(
+                    new ClinicaProtos.EliminarPacienteRequest { IdPaciente = id }
                 );
                 return Ok(response);
             }

@@ -23,7 +23,7 @@ namespace Microservicio.Administracion.Services
             return MapToResponse(medico);
         }
 
-        public override async Task<MedicosListResponse> ObtenerTodosMedicos(Empty request, ServerCallContext context)
+    public override async Task<MedicosListResponse> ObtenerTodosMedicos(Google.Protobuf.WellKnownTypes.Empty request, ServerCallContext context)
         {
             var medicos = await _dbContext.Empleados.ToListAsync();
             var response = new MedicosListResponse();

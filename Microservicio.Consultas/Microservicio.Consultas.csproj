@@ -7,11 +7,29 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Protobuf Include="Protos\greet.proto" GrpcServices="Server" />
+    <!-- Protos del propio microservicio -->
+    <Protobuf Include="Protos\consultas.proto" GrpcServices="Server" />
+
+    <!-- Protos externos para consumir Medicos y Pacientes -->
+    <Protobuf Include="Protos\medicos.proto" GrpcServices="Client" />
+    <Protobuf Include="Protos\pacientes.proto" GrpcServices="Client" />
   </ItemGroup>
 
   <ItemGroup>
+    <!-- gRPC y soporte para ASP.NET Core -->
     <PackageReference Include="Grpc.AspNetCore" Version="2.64.0" />
+
+    <!-- Entity Framework Core -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.9" />
+    <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="9.0.0" />
+
+    <!-- Logging opcional -->
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="9.0.0" />
+    <PackageReference Include="Google.Protobuf" Version="3.27.0" />
+    <PackageReference Include="Grpc.Tools" Version="2.65.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
   </ItemGroup>
 
 </Project>

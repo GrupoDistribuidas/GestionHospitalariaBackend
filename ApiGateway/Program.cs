@@ -2,15 +2,25 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using ApiGateway.Middleware;
+using Administracion.Protos;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllers();
+builder.Services.AddEndpointsApiExplorer();
 
 // Configurar OpenAPI/Swagger
 builder.Services.AddOpenApi();
 builder.Services.AddSwaggerGen();
+var grpcAddress = builder.Configuration.GetValue<string>("Grpc:Administracion")
+                 ?? "http://localhost:6001"; // fallback útil en dev
+Console.WriteLine($"[ApiGateway] gRPC Administracion => {grpcAddress}");
+
+builder.Services.AddGrpcClient<EspecialidadesService.EspecialidadesServiceClient>(o =>
+{
+    o.Address = new Uri(grpcAddress);
+});
 
 // Configurar autenticación JWT
 var jwtKey = builder.Configuration["Jwt:Key"] ?? 

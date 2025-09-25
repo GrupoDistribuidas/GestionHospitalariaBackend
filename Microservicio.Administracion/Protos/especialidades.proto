@@ -1,0 +1,39 @@
+syntax = "proto3";
+option csharp_namespace = "Administracion.Protos";
+package administracion;
+
+import "google/protobuf/empty.proto";
+
+message EspecialidadDto {
+  int32 id = 1;
+  string nombre = 2;
+}
+
+message IdRequest {
+  int32 id = 1;
+}
+
+message CreateEspecialidadRequest {
+  string nombre = 1;
+}
+
+message UpdateEspecialidadRequest {
+  int32 id = 1;
+  string nombre = 2;
+}
+
+message DeleteResponse {
+  bool deleted = 1;
+}
+
+message ListEspecialidadesResponse {
+  repeated EspecialidadDto items = 1;
+}
+
+service EspecialidadesService {
+  rpc Create (CreateEspecialidadRequest) returns (EspecialidadDto);
+  rpc GetById (IdRequest) returns (EspecialidadDto);
+  rpc Update (UpdateEspecialidadRequest) returns (EspecialidadDto);
+  rpc Delete (IdRequest) returns (DeleteResponse);
+  rpc List (google.protobuf.Empty) returns (ListEspecialidadesResponse);
+}

@@ -37,12 +37,12 @@ namespace Microservicio.Administracion.Data
                 entity.Property(e => e.Tipo).HasColumnName("tipo").IsRequired();
             });
 
-            modelBuilder.Entity<Especialidad>(entity =>
+            modelBuilder.Entity<Especialidad>(e =>
             {
-                entity.ToTable("Especialidades");
-                entity.HasKey(e => e.IdEspecialidad);
-                entity.Property(e => e.IdEspecialidad).HasColumnName("id_especialidad");
-                entity.Property(e => e.Nombre).HasColumnName("nombre").IsRequired();
+                e.ToTable("Especialidades");
+                e.HasKey(x => x.Id);
+                e.Property(x => x.Id).HasColumnName("id_especialidad");
+                e.Property(x => x.Nombre).HasColumnName("nombre").IsRequired().HasMaxLength(100);
             });
 
             modelBuilder.Entity<Empleado>(entity =>

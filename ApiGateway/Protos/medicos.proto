@@ -1,0 +1,67 @@
+syntax = "proto3";
+
+option csharp_namespace = "Microservicio.Administracion.Protos";
+
+service MedicosService {
+  rpc ObtenerMedicoPorId (MedicoPorIdRequest) returns (MedicoResponse);
+  rpc ObtenerTodosMedicos (Empty) returns (MedicosListResponse);
+  rpc InsertarMedico (InsertarMedicoRequest) returns (MedicoResponse);
+  rpc ActualizarMedico (ActualizarMedicoRequest) returns (MedicoResponse);
+  rpc EliminarMedico (EliminarMedicoRequest) returns (EliminarMedicoResponse);
+}
+
+message Empty {}
+
+message MedicoPorIdRequest {
+  int32 id_empleado = 1;
+}
+
+message MedicoResponse {
+  int32 id_empleado = 1;
+  int32 id_centro_medico = 2;
+  int32 id_tipo = 3;
+  int32 id_especialidad = 4;
+  string nombre = 5;
+  string telefono = 6;
+  string email = 7;
+  double salario = 8;
+  string horario = 9;
+  string estado = 10;
+}
+
+message MedicosListResponse {
+  repeated MedicoResponse medicos = 1;
+}
+
+message InsertarMedicoRequest {
+  int32 id_centro_medico = 1;
+  int32 id_tipo = 2;
+  int32 id_especialidad = 3;
+  string nombre = 4;
+  string telefono = 5;
+  string email = 6;
+  double salario = 7;
+  string horario = 8;
+  string estado = 9;
+}
+
+message ActualizarMedicoRequest {
+  int32 id_empleado = 1;
+  int32 id_centro_medico = 2;
+  int32 id_tipo = 3;
+  int32 id_especialidad = 4;
+  string nombre = 5;
+  string telefono = 6;
+  string email = 7;
+  double salario = 8;
+  string horario = 9;
+  string estado = 10;
+}
+
+message EliminarMedicoRequest {
+  int32 id_empleado = 1;
+}
+
+message EliminarMedicoResponse {
+  bool exito = 1;
+}

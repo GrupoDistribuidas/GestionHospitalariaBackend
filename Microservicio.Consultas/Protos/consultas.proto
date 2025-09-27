@@ -90,7 +90,8 @@ message MedicoReporteResponse {
   int32 id_especialidad = 3;
   string nombre_especialidad = 4;
   int32 total_consultas = 5;
-  repeated ConsultaReporteResponse consultas = 6;
+  string total_registradas = 6; // Para mostrar "X consultas" en el frontend
+  repeated ConsultaReporteResponse consultas = 7;
 }
 
 message ReporteConsultasPorMedicoResponse {

@@ -694,3 +694,119 @@ Para reportar bugs o solicitar features, crear un issue en el repositorio.
 **Versión**: 1.0.0  
 **Última actualización**: Septiembre 2025  
 **Mantenido por**: Equipo de Desarrollo - Sistema Gestión Hospitalaria
+# Prueba de Endpoint: Médicos con Especialidades Reales
+
+## Descripción
+Este documento describe cómo probar el endpoint `/api/reportes/medicos-disponibles` que ahora retorna los nombres reales de las especialidades.
+
+## Pasos para Probar
+
+### 1. Iniciar Microservicios
+Ejecutar en terminales separadas:
+
+```bash
+# Terminal 1 - Microservicio Administración
+cd Microservicio.Administracion
+dotnet run
+
+# Terminal 2 - Microservicio Consultas  
+cd Microservicio.Consultas
+dotnet run
+
+# Terminal 3 - ApiGateway
+cd ApiGateway
+dotnet run
+```
+
+### 2. Obtener Token JWT
+```http
+POST http://localhost:5088/api/auth/login
+Content-Type: application/json
+
+{
+  "nombreUsuario": "tu_usuario",
+  "contrasena": "tu_contraseña"
+}
+```
+
+### 3. Probar Endpoint Médicos
+```http
+GET http://localhost:5088/api/reportes/medicos-disponibles
+Authorization: Bearer tu_token_jwt_aqui
+```
+
+### 4. Respuesta Esperada
+
+#### Antes de la Mejora:
+```json
+[
+  {
+    "idMedico": 1,
+    "nombreMedico": "Dr. Juan Pérez",
+    "especialidad": "Especialidad ID: 1"
+  }
+]
+```
+
+#### Después de la Mejora:
+```json
+[
+  {
+    "idMedico": 1,
+    "nombreMedico": "Dr. Juan Pérez",
+    "especialidad": "Cardiología"
+  }
+]
+```
+
+## Flujo de Funcionamiento
+
+1. **Cliente hace petición** → `GET /api/reportes/medicos-disponibles`
+2. **ApiGateway valida JWT** → Middleware de autenticación
+3. **Controlador consulta médicos** → gRPC call a `MedicosService.ObtenerTodosMedicos()`
+4. **Controlador consulta especialidades** → gRPC call a `EspecialidadesService.ObtenerTodasEspecialidades()`
+5. **Controlador resuelve nombres** → Mapea ID de especialidad → Nombre real
+6. **Retorna respuesta** → JSON con especialidades reales
+
+## Verificaciones
+
+### ✅ Casos de Éxito
+- [ ] Médicos con especialidades válidas muestran nombres reales
+- [ ] Múltiples médicos con diferentes especialidades
+- [ ] Respuesta en formato JSON correcto
+
+### ⚠️ Casos Edge
+- [ ] Médico con especialidad inexistente → fallback a "Especialidad ID: X"
+- [ ] Error en microservicio especialidades → manejo de error
+- [ ] Sin médicos en sistema → array vacío `[]`
+
+### 🔒 Seguridad
+- [ ] Endpoint requiere JWT válido
+- [ ] Error 401 si no hay token
+- [ ] Error 401 si token inválido
+
+## Notas Técnicas
+
+### Dependencias gRPC
+- `Microservicio.Administracion.Protos.MedicosService`
+- `Microservicio.Administracion.Protos.EspecialidadesService`
+
+### Configuración Required
+- Cliente gRPC para especialidades debe estar configurado en `Program.cs`
+- Microservicio de administración debe estar corriendo en puerto 5100
+- Base de datos debe tener especialidades populadas
+
+## Troubleshooting
+
+### Error: "gRPC call failed"
+- Verificar que microservicio administración esté corriendo
+- Verificar configuración de cliente gRPC en Program.cs
+- Verificar puerto 5100 disponible
+
+### Error: Especialidades vacías
+- Verificar datos en tabla `especialidades`
+- Verificar servicio `EspecialidadesService` funcional
+
+### Error: 401 Unauthorized
+- Verificar token JWT válido
+- Verificar configuración JWT en Program.cs

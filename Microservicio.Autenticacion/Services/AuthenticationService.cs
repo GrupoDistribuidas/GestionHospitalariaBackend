@@ -101,10 +101,18 @@ namespace Microservicio.Autenticacion.Services
                 new Claim(ClaimTypes.Name, user.NombreUsuario)
             };
 
+            // Agregar rol del usuario desde la tabla usuarios
+            if (!string.IsNullOrEmpty(user.Rol))
+            {
+                claims.Add(new Claim(ClaimTypes.Role, user.Rol));
+                claims.Add(new Claim("rol_usuario", user.Rol)); // Claim adicional para facilitar acceso
+            }
+
             if (user.Empleado != null)
             {
                 claims.Add(new Claim(ClaimTypes.Email, user.Empleado.Email ?? ""));
-                claims.Add(new Claim(ClaimTypes.Role, user.Empleado.Rol));
+                // Mantener el rol del empleado como claim separado para compatibilidad
+                claims.Add(new Claim("rol_empleado", user.Empleado.Rol));
                 claims.Add(new Claim("nombre_completo", user.Empleado.Nombre));
                 claims.Add(new Claim("id_empleado", user.Empleado.IdEmpleado.ToString()));
                 

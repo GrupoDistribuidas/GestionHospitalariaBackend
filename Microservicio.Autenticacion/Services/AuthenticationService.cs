@@ -13,19 +13,21 @@ namespace Microservicio.Autenticacion.Services
         private readonly HospitalDbContext _context;
         private readonly IConfiguration _config;
         private readonly ILogger<AuthenticationService> _logger;
+        private readonly IEmailService _emailService;
 
-        public AuthenticationService(HospitalDbContext context, IConfiguration config, ILogger<AuthenticationService> logger)
+        public AuthenticationService(HospitalDbContext context, IConfiguration config, ILogger<AuthenticationService> logger, IEmailService emailService)
         {
             _context = context;
             _config = config;
             _logger = logger;
+            _emailService = emailService;
         }
 
-        public async Task<Usuario?> ValidateUserAsync(string nombreUsuario, string contrase�a)
+        public async Task<Usuario?> ValidateUserAsync(string nombreUsuario, string contraseña)
         {
             try
             {
-                if (string.IsNullOrEmpty(nombreUsuario) || string.IsNullOrEmpty(contrase�a))
+                if (string.IsNullOrEmpty(nombreUsuario) || string.IsNullOrEmpty(contraseña))
                 {
                     _logger.LogWarning("Credenciales faltantes en solicitud de login");
                     return null;
@@ -48,7 +50,7 @@ namespace Microservicio.Autenticacion.Services
                     return null;
                 }
 
-                if (!BCrypt.Net.BCrypt.Verify(contrase�a, user.Contrase�a))
+                if (!BCrypt.Net.BCrypt.Verify(contraseña, user.Contraseña))
                 {
                     _logger.LogWarning("Intento de login fallido para usuario: {Username}", nombreUsuario);
                     return null;
@@ -59,7 +61,7 @@ namespace Microservicio.Autenticacion.Services
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error durante validaci�n de usuario: {Username}", nombreUsuario);
+                _logger.LogError(ex, "Error durante validación de usuario: {Username}", nombreUsuario);
                 return null;
             }
         }
@@ -126,6 +128,60 @@ namespace Microservicio.Autenticacion.Services
             );
 
             return new JwtSecurityTokenHandler().WriteToken(token);
+        }
+
+        public async Task<bool> SendPasswordByEmailAsync(string nombreUsuario)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(nombreUsuario))
+                {
+                    _logger.LogWarning("Nombre de usuario vacío en solicitud de recuperación de contraseña");
+                    return false;
+                }
+
+                var user = await _context.Usuarios
+                    .Include(u => u.Empleado)
+                    .FirstOrDefaultAsync(u => u.NombreUsuario == nombreUsuario && 
+                                           u.Empleado != null && 
+                                           u.Empleado.Estado == "Activo");
+
+                if (user == null || user.Empleado == null)
+                {
+                    _logger.LogWarning("Usuario no encontrado o inactivo para recuperación de contraseña: {Username}", nombreUsuario);
+                    return false;
+                }
+
+                if (string.IsNullOrEmpty(user.Empleado.Email))
+                {
+                    _logger.LogWarning("Usuario no tiene email configurado para recuperación de contraseña: {Username}", nombreUsuario);
+                    return false;
+                }
+
+                // Enviar el correo con la contraseña actual
+                var emailSent = await _emailService.SendPasswordByEmailAsync(
+                    user.Empleado.Email,
+                    user.Empleado.Nombre,
+                    user.NombreUsuario,
+                    user.Contraseña
+                );
+
+                if (emailSent)
+                {
+                    _logger.LogInformation("Correo de recuperación de contraseña enviado exitosamente para usuario: {Username}", nombreUsuario);
+                }
+                else
+                {
+                    _logger.LogError("Error al enviar correo de recuperación de contraseña para usuario: {Username}", nombreUsuario);
+                }
+
+                return emailSent;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error inesperado al procesar solicitud de recuperación de contraseña para usuario: {Username}", nombreUsuario);
+                return false;
+            }
         }
     }
 }

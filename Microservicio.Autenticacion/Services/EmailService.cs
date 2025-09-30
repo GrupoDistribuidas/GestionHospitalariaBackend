@@ -52,18 +52,18 @@ namespace Microservicio.Autenticacion.Services
                                     
                                     <p style='font-size: 16px; line-height: 1.5; color: #333; margin-bottom: 20px;'>
                                         Has solicitado recuperar tu contraseña para el sistema del Hospital Central. 
-                                        A continuación encontrarás tus credenciales de acceso:
+                                        Se ha generado una nueva contraseña temporal para tu cuenta:
                                     </p>
                                     
                                     <div style='background-color: #f8f9fa; padding: 20px; border-radius: 5px; border-left: 4px solid #2c5aa0; margin: 20px 0;'>
                                         <p style='margin: 0; font-size: 16px; color: #333;'><strong>Usuario:</strong> {username}</p>
-                                        <p style='margin: 10px 0 0 0; font-size: 16px; color: #333;'><strong>Contraseña:</strong> {password}</p>
+                                        <p style='margin: 10px 0 0 0; font-size: 16px; color: #333;'><strong>Contraseña Temporal:</strong> {password}</p>
                                     </div>
                                     
                                     <div style='background-color: #fff3cd; padding: 15px; border-radius: 5px; border: 1px solid #ffeaa7; margin: 20px 0;'>
                                         <p style='margin: 0; font-size: 14px; color: #856404;'>
-                                            <strong>⚠️ Importante:</strong> Por seguridad, te recomendamos cambiar tu contraseña 
-                                            después de iniciar sesión en el sistema.
+                                            <strong>⚠️ Importante:</strong> Esta es una contraseña temporal. Por seguridad, 
+                                            te recomendamos encarecidamente cambiar esta contraseña después de iniciar sesión en el sistema.
                                         </p>
                                     </div>
                                     
@@ -90,12 +90,13 @@ Sistema Hospital Central - Recuperación de Contraseña
 Estimado/a {recipientName},
 
 Has solicitado recuperar tu contraseña para el sistema del Hospital Central.
+Se ha generado una nueva contraseña temporal para tu cuenta.
 
 Credenciales de acceso:
 Usuario: {username}
-Contraseña: {password}
+Contraseña Temporal: {password}
 
-IMPORTANTE: Por seguridad, te recomendamos cambiar tu contraseña después de iniciar sesión en el sistema.
+IMPORTANTE: Esta es una contraseña temporal. Por seguridad, te recomendamos encarecidamente cambiar esta contraseña después de iniciar sesión en el sistema.
 
 Si no solicitaste esta recuperación de contraseña, por favor contacta inmediatamente al administrador del sistema.
 

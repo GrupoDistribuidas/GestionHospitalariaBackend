@@ -5,6 +5,7 @@ option csharp_namespace = "Microservicio.Autenticacion";
 service AuthService {
   rpc Login (LoginRequest) returns (LoginReply);
   rpc ValidateToken (TokenRequest) returns (TokenReply);
+  rpc SendPasswordByEmail (PasswordRecoveryRequest) returns (PasswordRecoveryReply);
 }
 
 message LoginRequest {
@@ -24,4 +25,13 @@ message TokenRequest {
 message TokenReply {
   bool is_valid = 1;
   string username = 2;
+}
+
+message PasswordRecoveryRequest {
+  string username = 1;
+}
+
+message PasswordRecoveryReply {
+  bool success = 1;
+  string message = 2;
 }

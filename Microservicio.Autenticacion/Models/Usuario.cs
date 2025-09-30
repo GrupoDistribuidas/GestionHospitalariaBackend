@@ -16,13 +16,17 @@ namespace Microservicio.Autenticacion.Models
 
         [Required]
         [StringLength(255)]
-        [Column("contraseña")]
-        public string Contraseña { get; set; } = string.Empty;
+        [Column("contraseÃ±a")]
+        public string ContraseÃ±a { get; set; } = string.Empty;
+
+        [StringLength(50)]
+        [Column("rol")]
+        public string? Rol { get; set; }
 
         [Column("id_empleado")]
         public int? IdEmpleado { get; set; }
 
-        // Relación con Empleado
+        // Relaciï¿½n con Empleado
         [ForeignKey("IdEmpleado")]
         public Empleado? Empleado { get; set; }
     }

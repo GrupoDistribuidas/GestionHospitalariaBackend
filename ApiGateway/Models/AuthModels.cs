@@ -30,4 +30,16 @@ namespace ApiGateway.Models
         public string Username { get; set; } = string.Empty;
         public string Message { get; set; } = string.Empty;
     }
+
+    public class PasswordRecoveryRequest
+    {
+        [Required(ErrorMessage = "El nombre de usuario es requerido")]
+        public string Username { get; set; } = string.Empty;
+    }
+
+    public class PasswordRecoveryResponse
+    {
+        public bool Success { get; set; }
+        public string Message { get; set; } = string.Empty;
+    }
 }

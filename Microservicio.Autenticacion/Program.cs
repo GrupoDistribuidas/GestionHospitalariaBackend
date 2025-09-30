@@ -14,10 +14,11 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 builder.Services.AddDbContext<HospitalDbContext>(options =>
     options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString)));
 
-// Registrar servicios de autenticaci髇
+// Registrar servicios de autenticaci贸n
 builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
+builder.Services.AddScoped<IEmailService, EmailService>();
 
-// Habilitar reflexi髇 gRPC para herramientas como Postman
+// Habilitar reflexi贸n gRPC para herramientas como Postman
 if (builder.Environment.IsDevelopment())
 {
     builder.Services.AddGrpcReflection();
@@ -25,8 +26,8 @@ if (builder.Environment.IsDevelopment())
 
 var app = builder.Build();
 
-// IMPORTANTE: NO crear tablas autom醫icamente porque ya existen
-// Solo verificar conexi髇 a la base de datos existente
+// IMPORTANTE: NO crear tablas autom谩ticamente porque ya existen
+// Solo verificar conexi贸n a la base de datos existente
 if (app.Environment.IsDevelopment())
 {
     using (var scope = app.Services.CreateScope())
@@ -36,7 +37,7 @@ if (app.Environment.IsDevelopment())
         {
             // Solo verificar que podemos conectarnos
             await context.Database.CanConnectAsync();
-            app.Logger.LogInformation("Conexi髇 a base de datos existente verificada exitosamente");
+            app.Logger.LogInformation("Conexi贸n a base de datos existente verificada exitosamente");
         }
         catch (Exception ex)
         {
@@ -49,12 +50,12 @@ if (app.Environment.IsDevelopment())
 app.MapGrpcService<GreeterService>();
 app.MapGrpcService<AuthGrpcService>();
 
-// Habilitar reflexi髇 gRPC en desarrollo
+// Habilitar reflexi贸n gRPC en desarrollo
 if (app.Environment.IsDevelopment())
 {
     app.MapGrpcReflectionService();
 }
 
-app.MapGet("/", () => "Microservicio de Autenticaci髇 - Hospital Central. Comun韖uese con los puntos finales de gRPC a trav閟 de un cliente gRPC.");
+app.MapGet("/", () => "Microservicio de Autenticaci贸n - Hospital Central. Comun铆quese con los puntos finales de gRPC a trav茅s de un cliente gRPC.");
 
 app.Run();

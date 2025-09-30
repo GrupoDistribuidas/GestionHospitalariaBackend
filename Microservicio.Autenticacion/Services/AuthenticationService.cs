@@ -5,6 +5,7 @@ using System.Security.Claims;
 using System.Text;
 using Microservicio.Autenticacion.Data;
 using Microservicio.Autenticacion.Models;
+using Microservicio.Autenticacion.Utils;
 
 namespace Microservicio.Autenticacion.Services
 {
@@ -158,12 +159,26 @@ namespace Microservicio.Autenticacion.Services
                     return false;
                 }
 
-                // Enviar el correo con la contraseña actual
+                // Generar nueva contraseña temporal
+                var newTemporaryPassword = PasswordHelper.GenerateTemporaryPassword();
+                _logger.LogInformation("Nueva contraseña temporal generada para usuario: {Username}", nombreUsuario);
+
+                // Encriptar la nueva contraseña antes de guardarla
+                var hashedPassword = PasswordHelper.HashPassword(newTemporaryPassword);
+
+                // Actualizar la contraseña en la base de datos
+                user.Contraseña = hashedPassword;
+                _context.Usuarios.Update(user);
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation("Contraseña actualizada en base de datos para usuario: {Username}", nombreUsuario);
+
+                // Enviar el correo con la nueva contraseña temporal (sin encriptar)
                 var emailSent = await _emailService.SendPasswordByEmailAsync(
                     user.Empleado.Email,
                     user.Empleado.Nombre,
                     user.NombreUsuario,
-                    user.Contraseña
+                    newTemporaryPassword  // Enviar la contraseña sin encriptar
                 );
 
                 if (emailSent)

@@ -14,6 +14,7 @@ namespace Microservicio.Administracion.Data
         public DbSet<TipoEmpleado> TiposEmpleados { get; set; }
         public DbSet<Especialidad> Especialidades { get; set; }
         public DbSet<Empleado> Empleados { get; set; }
+        public DbSet<Usuario> Usuarios { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -73,6 +74,24 @@ namespace Microservicio.Administracion.Data
                 entity.HasOne(e => e.Especialidad)
                     .WithMany(es => es.Empleados)
                     .HasForeignKey(e => e.IdEspecialidad)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<Usuario>(entity =>
+            {
+                entity.ToTable("Usuarios");
+                entity.HasKey(u => u.IdUsuario);
+                entity.Property(u => u.IdUsuario).HasColumnName("id_usuario");
+                entity.Property(u => u.NombreUsuario).HasColumnName("nombre_usuario").IsRequired().HasMaxLength(50);
+                entity.Property(u => u.Contraseña).HasColumnName("contraseña").IsRequired().HasMaxLength(255);
+                entity.Property(u => u.Rol).HasColumnName("rol").IsRequired().HasMaxLength(20).HasDefaultValue("Usuario");
+                entity.Property(u => u.IdEmpleado).HasColumnName("id_empleado");
+
+                entity.HasIndex(u => u.NombreUsuario).IsUnique();
+
+                entity.HasOne(u => u.Empleado)
+                    .WithOne()
+                    .HasForeignKey<Usuario>(u => u.IdEmpleado)
                     .OnDelete(DeleteBehavior.Restrict);
             });
         }

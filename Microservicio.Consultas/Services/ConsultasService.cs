@@ -191,7 +191,8 @@ namespace Microservicio.Consultas.Services
                             NombreMedico = medicoInfo.Nombre,
                             IdEspecialidad = medicoInfo.IdEspecialidad,
                             NombreEspecialidad = $"Especialidad ID: {medicoInfo.IdEspecialidad}", // Temporal hasta obtener nombre real
-                            TotalConsultas = consultasDelMedico.Count
+                            TotalConsultas = consultasDelMedico.Count,
+                            TotalRegistradas = $"{consultasDelMedico.Count} consultas"
                         };
 
                         // Agregar consultas del médico con información del paciente

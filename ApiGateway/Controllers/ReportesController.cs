@@ -2,18 +2,24 @@ using Microsoft.AspNetCore.Mvc;
 using Microservicio.Consultas.Protos;
 using Grpc.Core;
 using ApiGateway.Models;
+using Microsoft.AspNetCore.Authorization;
 
 namespace ApiGateway.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize] // Requiere autenticación JWT para todos los endpoints
     public class ReportesController : ControllerBase
     {
         private readonly ConsultasService.ConsultasServiceClient _consultasClient;
+        private readonly Microservicio.Administracion.Protos.EspecialidadesService.EspecialidadesServiceClient _especialidadesClient;
 
-        public ReportesController(ConsultasService.ConsultasServiceClient consultasClient)
+        public ReportesController(
+            ConsultasService.ConsultasServiceClient consultasClient,
+            Microservicio.Administracion.Protos.EspecialidadesService.EspecialidadesServiceClient especialidadesClient)
         {
             _consultasClient = consultasClient;
+            _especialidadesClient = especialidadesClient;
         }
 
         /// <summary>
@@ -71,43 +77,52 @@ namespace ApiGateway.Controllers
 
                 var response = await _consultasClient.ObtenerReporteConsultasPorMedicoAsync(grpcRequest);
 
-                // Crear respuesta estructurada
+                // Contar filtros activos
+                int filtrosActivos = 0;
+                if (request.IdMedico.HasValue && request.IdMedico > 0) filtrosActivos++;
+                if (!string.IsNullOrEmpty(request.FechaInicio)) filtrosActivos++;
+                if (!string.IsNullOrEmpty(request.FechaFin)) filtrosActivos++;
+                if (!string.IsNullOrEmpty(request.Motivo)) filtrosActivos++;
+                if (!string.IsNullOrEmpty(request.Diagnostico)) filtrosActivos++;
+
+                // Crear respuesta estructurada según la interfaz del frontend
                 var resultado = new ReporteConsultasResponse
                 {
-                    Resumen = new ResumenReporte
+                    Resumen = new ResumenConsultas
                     {
-                        TotalConsultasGeneral = response.TotalConsultasGeneral,
-                        TotalMedicos = response.Medicos.Count,
-                        FechaGeneracion = response.FechaGeneracion,
-                        Filtros = new FiltrosReporte
-                        {
-                            MedicoId = request.IdMedico,
-                            FechaInicio = request.FechaInicio,
-                            FechaFin = request.FechaFin,
-                            Motivo = request.Motivo,
-                            Diagnostico = request.Diagnostico
-                        }
+                        TotalConsultas = response.TotalConsultasGeneral,
+                        MedicosActivos = response.Medicos.Count,
+                        FiltrosActivos = filtrosActivos,
+                        FechaGeneracion = response.FechaGeneracion
                     },
-                    Medicos = response.Medicos.Select(m => new MedicoReporte
+                    FiltrosAplicados = new FiltrosAplicados
+                    {
+                        MedicoId = request.IdMedico,
+                        NombreMedico = request.IdMedico.HasValue ? 
+                            response.Medicos.FirstOrDefault(m => m.IdMedico == request.IdMedico)?.NombreMedico : null,
+                        FechaInicio = request.FechaInicio,
+                        FechaFin = request.FechaFin,
+                        Motivo = request.Motivo,
+                        Diagnostico = request.Diagnostico
+                    },
+                    MedicosPorConsultas = response.Medicos.Select(m => new MedicoConsultas
                     {
                         IdMedico = m.IdMedico,
                         NombreMedico = m.NombreMedico,
-                        IdEspecialidad = m.IdEspecialidad,
-                        NombreEspecialidad = m.NombreEspecialidad,
+                        Especialidad = m.NombreEspecialidad,
                         TotalConsultas = m.TotalConsultas,
-                        Consultas = m.Consultas.Select(c => new ConsultaReporte
+                        TotalRegistradas = m.TotalRegistradas,
+                        Expandido = false, // Por defecto no expandido
+                        Consultas = m.Consultas.Select(c => new ConsultaDetalle
                         {
                             IdConsulta = c.IdConsultaMedica,
                             Fecha = c.Fecha,
                             Hora = c.Hora,
+                            NombrePaciente = c.NombrePaciente,
                             Motivo = c.Motivo,
                             Diagnostico = c.Diagnostico,
                             Tratamiento = c.Tratamiento,
-                            Paciente = new PacienteReporte
-                            {
-                                IdPaciente = c.IdPaciente,
-                                NombrePaciente = c.NombrePaciente
-                            }
+                            IdPaciente = c.IdPaciente
                         }).ToList()
                     }).ToList()
                 };
@@ -171,6 +186,44 @@ namespace ApiGateway.Controllers
                 };
 
                 return Ok(estadisticas);
+            }
+            catch (RpcException ex)
+            {
+                return StatusCode((int)ex.StatusCode, new { error = ex.Status.Detail });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = "Error interno del servidor", detalle = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Obtiene la lista de médicos disponibles para usar en los filtros
+        /// </summary>
+        /// <returns>Lista de médicos con su información básica</returns>
+        [HttpGet("medicos-disponibles")]
+        public async Task<ActionResult<List<MedicoFiltro>>> GetMedicosDisponibles()
+        {
+            try
+            {
+                // Obtener todos los médicos desde el microservicio de administración
+                var medicosClient = HttpContext.RequestServices.GetRequiredService<Microservicio.Administracion.Protos.MedicosService.MedicosServiceClient>();
+                var medicosResponse = await medicosClient.ObtenerTodosMedicosAsync(new Google.Protobuf.WellKnownTypes.Empty());
+
+                // Obtener todas las especialidades para resolver nombres
+                var especialidadesResponse = await _especialidadesClient.ObtenerTodasEspecialidadesAsync(new Google.Protobuf.WellKnownTypes.Empty());
+                var especialidadesDict = especialidadesResponse.Especialidades.ToDictionary(e => e.IdEspecialidad, e => e.Nombre);
+
+                var medicosDisponibles = medicosResponse.Medicos.Select(m => new MedicoFiltro
+                {
+                    IdMedico = m.IdEmpleado,
+                    NombreMedico = m.Nombre,
+                    Especialidad = especialidadesDict.ContainsKey(m.IdEspecialidad) 
+                        ? especialidadesDict[m.IdEspecialidad] 
+                        : $"Especialidad ID: {m.IdEspecialidad}"
+                }).ToList();
+
+                return Ok(medicosDisponibles);
             }
             catch (RpcException ex)
             {

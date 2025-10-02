@@ -150,10 +150,96 @@ namespace ApiGateway.Controllers
             }
         }
 
+        [HttpGet("user-info")]
+        [Microsoft.AspNetCore.Authorization.Authorize]
+        public IActionResult GetUserInfo()
+        {
+            try
+            {
+                // Obtener información del token JWT actual
+                var username = User.Identity?.Name;
+                var claims = User.Claims.Select(c => new { c.Type, c.Value }).ToList();
+
+                return Ok(new
+                {
+                    username = username,
+                    isAuthenticated = User.Identity?.IsAuthenticated ?? false,
+                    claims = claims,
+                    timestamp = DateTime.UtcNow
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error obteniendo información del usuario");
+                return StatusCode(500, new { error = "Error interno del servidor" });
+            }
+        }
+
         [HttpGet("health")]
         public IActionResult Health()
         {
             return Ok(new { status = "OK", service = "ApiGateway - Auth Controller", timestamp = DateTime.UtcNow });
+        }
+
+        [HttpPost("forgot-password")]
+        public async Task<ActionResult<Models.PasswordRecoveryResponse>> ForgotPassword([FromBody] Models.PasswordRecoveryRequest request)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    return BadRequest(new Models.PasswordRecoveryResponse
+                    {
+                        Success = false,
+                        Message = "Datos de entrada inválidos"
+                    });
+                }
+
+                // Obtener la URL del microservicio de autenticación
+                var authServiceUrl = _configuration["Microservices:AuthenticationService"] ??
+                    throw new InvalidOperationException("URL del servicio de autenticación no configurada");
+
+                _logger.LogInformation("Solicitud de recuperación de contraseña para usuario: {Username}", request.Username);
+
+                // Crear cliente gRPC
+                using var channel = GrpcChannel.ForAddress(authServiceUrl);
+                var client = new AuthService.AuthServiceClient(channel);
+
+                // Realizar la llamada gRPC
+                var grpcRequest = new Microservicio.Autenticacion.PasswordRecoveryRequest
+                {
+                    Username = request.Username
+                };
+
+                var grpcResponse = await client.SendPasswordByEmailAsync(grpcRequest);
+
+                var response = new Models.PasswordRecoveryResponse
+                {
+                    Success = grpcResponse.Success,
+                    Message = grpcResponse.Message
+                };
+
+                if (grpcResponse.Success)
+                {
+                    _logger.LogInformation("Recuperación de contraseña exitosa para usuario: {Username}", request.Username);
+                    return Ok(response);
+                }
+                else
+                {
+                    _logger.LogWarning("Error en recuperación de contraseña para usuario: {Username}. Mensaje: {Message}", 
+                        request.Username, grpcResponse.Message);
+                    return BadRequest(response);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error inesperado durante recuperación de contraseña para usuario: {Username}", request.Username);
+                return StatusCode(500, new Models.PasswordRecoveryResponse
+                {
+                    Success = false,
+                    Message = "Error interno del servidor. Intenta nuevamente más tarde."
+                });
+            }
         }
     }
 }

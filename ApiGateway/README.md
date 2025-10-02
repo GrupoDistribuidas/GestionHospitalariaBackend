@@ -451,6 +451,7 @@ Obtiene estadísticas resumidas de las consultas médicas usando JSON en el body
     }
   ]
 }
+
 ```
 
 ## Códigos de Respuesta
@@ -459,7 +460,184 @@ Obtiene estadísticas resumidas de las consultas médicas usando JSON en el body
 - **400 Bad Request**: Parámetros inválidos (formato de fecha incorrecto, fecha inicio mayor que fecha fin)
 - **404 Not Found**: No se encontraron datos para los filtros especificados
 - **500 Internal Server Error**: Error interno del servidor
+# Autenticación JWT en API Gateway
 
+## Descripción
+Todos los endpoints del API Gateway (excepto los de autenticación) requieren un token JWT válido para acceder a los recursos.
+
+## 🔐 Endpoints que NO requieren autenticación:
+- `POST /api/auth/login` - Iniciar sesión
+- `POST /api/auth/validate-token` - Validar token
+- `GET /health` - Estado del servicio
+
+## 🛡️ Endpoints que requieren autenticación:
+- `GET|POST|PUT|DELETE /api/medicos/*` - Gestión de médicos
+- `GET|POST|PUT|DELETE /api/pacientes/*` - Gestión de pacientes  
+- `GET|POST|PUT|DELETE /api/consultas/*` - Gestión de consultas
+- `POST /api/reportes/*` - Reportes y estadísticas
+
+## 🚀 Cómo obtener un token JWT
+
+### 1. Realizar Login
+```http
+POST /api/auth/login
+Content-Type: application/json
+
+{
+  "username": "tu_usuario",
+  "password": "tu_contraseña"
+}
+```
+
+### 2. Respuesta exitosa
+```json
+{
+  "success": true,
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "message": "Login exitoso"
+}
+```
+
+## 🔑 Cómo usar el token JWT
+
+### En el Header HTTP
+Incluye el token en el header `Authorization` con el prefijo `Bearer`:
+
+```http
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+```
+
+### Ejemplo de petición autenticada
+```http
+POST /api/reportes/consultas-por-medico
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+Content-Type: application/json
+
+{
+  "idMedico": 123,
+  "fechaInicio": "2024-01-01",
+  "fechaFin": "2024-12-31"
+}
+```
+
+## 🌐 Usando cURL
+```bash
+# 1. Obtener token
+curl -X POST "http://localhost:5088/api/auth/login" \
+  -H "Content-Type: application/json" \
+  -d '{"username":"tu_usuario","password":"tu_contraseña"}'
+
+# 2. Usar token en peticiones
+curl -X POST "http://localhost:5088/api/reportes/consultas-por-medico" \
+  -H "Authorization: Bearer TU_TOKEN_AQUI" \
+  -H "Content-Type: application/json" \
+  -d '{}'
+```
+
+## 📱 JavaScript/Frontend
+```javascript
+// 1. Login y obtener token
+const loginResponse = await fetch('/api/auth/login', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    username: 'tu_usuario',
+    password: 'tu_contraseña'
+  })
+});
+
+const loginData = await loginResponse.json();
+const token = loginData.token;
+
+// 2. Usar token en peticiones posteriores
+const reporteResponse = await fetch('/api/reportes/consultas-por-medico', {
+  method: 'POST',
+  headers: {
+    'Authorization': `Bearer ${token}`,
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    idMedico: 123,
+    fechaInicio: '2024-01-01',
+    fechaFin: '2024-12-31'
+  })
+});
+```
+
+## 🔧 Swagger UI
+1. Ve a `http://localhost:5088/swagger`
+2. Haz clic en el botón **"Authorize"** 🔒 en la parte superior derecha
+3. Ingresa `Bearer TU_TOKEN_AQUI` en el campo de texto
+4. Haz clic en **"Authorize"**
+5. Ahora puedes probar todos los endpoints autenticados
+
+## ❌ Respuestas de Error
+
+### Token no proporcionado
+```json
+{
+  "error": "No autorizado",
+  "message": "Se requiere un token JWT válido para acceder a este recurso",
+  "hint": "Incluye el header: Authorization: Bearer <tu-token-jwt>",
+  "timestamp": "2024-09-25T10:30:00.000Z"
+}
+```
+
+### Token inválido o expirado
+```json
+{
+  "error": "Error de autenticación",
+  "message": "Token JWT inválido o expirado",
+  "details": "The token is expired",
+  "timestamp": "2024-09-25T10:30:00.000Z"
+}
+```
+
+## ⚠️ Consideraciones Importantes
+
+1. **Expiración**: Los tokens JWT tienen una duración limitada configurada en el servidor
+2. **Seguridad**: Nunca expongas tokens en URLs o logs
+3. **Almacenamiento**: Guarda tokens de forma segura (localStorage, sessionStorage, cookies httpOnly)
+4. **Renovación**: Implementa lógica para renovar tokens antes de que expiren
+5. **HTTPS**: En producción, siempre usa HTTPS para proteger los tokens en tránsito
+
+## 🔄 Flujo Completo de Autenticación
+
+```mermaid
+sequenceDiagram
+    participant C as Cliente
+    participant AG as API Gateway
+    participant AUTH as Microservicio Auth
+    participant MS as Otros Microservicios
+
+    C->>AG: POST /api/auth/login (credenciales)
+    AG->>AUTH: gRPC Login
+    AUTH-->>AG: Token JWT
+    AG-->>C: Token JWT
+
+    C->>AG: Request + Authorization: Bearer token
+    AG->>AG: Validar JWT
+    
+    alt Token válido
+        AG->>MS: gRPC Request
+        MS-->>AG: Respuesta
+        AG-->>C: Respuesta exitosa
+    else Token inválido
+        AG-->>C: 401 Unauthorized
+    end
+```
+
+## 🛠️ Configuración del Token
+
+Los tokens JWT están configurados con:
+- **Issuer**: `Microservicio.Autenticacion`
+- **Audience**: No validado (`ValidateAudience = false`)
+- **Algoritmo**: HS256
+- **Clock Skew**: 0 (sin tolerancia de tiempo)
+
+Para más detalles, revisa la configuración en `Program.cs` del API Gateway.
 ## Notas Importantes
 
 1. **Formato de Fechas**: Todas las fechas deben estar en formato `yyyy-MM-dd` (ISO 8601)
@@ -516,3 +694,119 @@ Para reportar bugs o solicitar features, crear un issue en el repositorio.
 **Versión**: 1.0.0  
 **Última actualización**: Septiembre 2025  
 **Mantenido por**: Equipo de Desarrollo - Sistema Gestión Hospitalaria
+# Prueba de Endpoint: Médicos con Especialidades Reales
+
+## Descripción
+Este documento describe cómo probar el endpoint `/api/reportes/medicos-disponibles` que ahora retorna los nombres reales de las especialidades.
+
+## Pasos para Probar
+
+### 1. Iniciar Microservicios
+Ejecutar en terminales separadas:
+
+```bash
+# Terminal 1 - Microservicio Administración
+cd Microservicio.Administracion
+dotnet run
+
+# Terminal 2 - Microservicio Consultas  
+cd Microservicio.Consultas
+dotnet run
+
+# Terminal 3 - ApiGateway
+cd ApiGateway
+dotnet run
+```
+
+### 2. Obtener Token JWT
+```http
+POST http://localhost:5088/api/auth/login
+Content-Type: application/json
+
+{
+  "nombreUsuario": "tu_usuario",
+  "contrasena": "tu_contraseña"
+}
+```
+
+### 3. Probar Endpoint Médicos
+```http
+GET http://localhost:5088/api/reportes/medicos-disponibles
+Authorization: Bearer tu_token_jwt_aqui
+```
+
+### 4. Respuesta Esperada
+
+#### Antes de la Mejora:
+```json
+[
+  {
+    "idMedico": 1,
+    "nombreMedico": "Dr. Juan Pérez",
+    "especialidad": "Especialidad ID: 1"
+  }
+]
+```
+
+#### Después de la Mejora:
+```json
+[
+  {
+    "idMedico": 1,
+    "nombreMedico": "Dr. Juan Pérez",
+    "especialidad": "Cardiología"
+  }
+]
+```
+
+## Flujo de Funcionamiento
+
+1. **Cliente hace petición** → `GET /api/reportes/medicos-disponibles`
+2. **ApiGateway valida JWT** → Middleware de autenticación
+3. **Controlador consulta médicos** → gRPC call a `MedicosService.ObtenerTodosMedicos()`
+4. **Controlador consulta especialidades** → gRPC call a `EspecialidadesService.ObtenerTodasEspecialidades()`
+5. **Controlador resuelve nombres** → Mapea ID de especialidad → Nombre real
+6. **Retorna respuesta** → JSON con especialidades reales
+
+## Verificaciones
+
+### ✅ Casos de Éxito
+- [ ] Médicos con especialidades válidas muestran nombres reales
+- [ ] Múltiples médicos con diferentes especialidades
+- [ ] Respuesta en formato JSON correcto
+
+### ⚠️ Casos Edge
+- [ ] Médico con especialidad inexistente → fallback a "Especialidad ID: X"
+- [ ] Error en microservicio especialidades → manejo de error
+- [ ] Sin médicos en sistema → array vacío `[]`
+
+### 🔒 Seguridad
+- [ ] Endpoint requiere JWT válido
+- [ ] Error 401 si no hay token
+- [ ] Error 401 si token inválido
+
+## Notas Técnicas
+
+### Dependencias gRPC
+- `Microservicio.Administracion.Protos.MedicosService`
+- `Microservicio.Administracion.Protos.EspecialidadesService`
+
+### Configuración Required
+- Cliente gRPC para especialidades debe estar configurado en `Program.cs`
+- Microservicio de administración debe estar corriendo en puerto 5100
+- Base de datos debe tener especialidades populadas
+
+## Troubleshooting
+
+### Error: "gRPC call failed"
+- Verificar que microservicio administración esté corriendo
+- Verificar configuración de cliente gRPC en Program.cs
+- Verificar puerto 5100 disponible
+
+### Error: Especialidades vacías
+- Verificar datos en tabla `especialidades`
+- Verificar servicio `EspecialidadesService` funcional
+
+### Error: 401 Unauthorized
+- Verificar token JWT válido
+- Verificar configuración JWT en Program.cs

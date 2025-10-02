@@ -164,5 +164,53 @@
                 };
             }
         }
+
+        public override async Task<PasswordRecoveryReply> SendPasswordByEmail(PasswordRecoveryRequest request, ServerCallContext context)
+        {
+            try
+            {
+                _logger.LogInformation("Solicitud de recuperación de contraseña para usuario: '{Username}'", request.Username);
+
+                if (string.IsNullOrEmpty(request.Username))
+                {
+                    _logger.LogWarning("Username requerido para recuperación de contraseña");
+                    return new PasswordRecoveryReply
+                    {
+                        Success = false,
+                        Message = "Username requerido"
+                    };
+                }
+
+                var result = await _authService.SendPasswordByEmailAsync(request.Username);
+
+                if (result)
+                {
+                    _logger.LogInformation("Correo de recuperación enviado exitosamente para usuario: '{Username}'", request.Username);
+                    return new PasswordRecoveryReply
+                    {
+                        Success = true,
+                        Message = "Correo de recuperación enviado exitosamente. Revisa tu bandeja de entrada."
+                    };
+                }
+                else
+                {
+                    _logger.LogWarning("Error al enviar correo de recuperación para usuario: '{Username}'", request.Username);
+                    return new PasswordRecoveryReply
+                    {
+                        Success = false,
+                        Message = "Error al enviar el correo. Verifica que tu username sea correcto y que tengas un email registrado."
+                    };
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error inesperado durante recuperación de contraseña para usuario: '{Username}'", request.Username);
+                return new PasswordRecoveryReply
+                {
+                    Success = false,
+                    Message = "Error interno del servidor. Intenta nuevamente más tarde."
+                };
+            }
+        }
     }
 }

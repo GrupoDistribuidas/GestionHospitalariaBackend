@@ -1,0 +1,75 @@
+syntax = "proto3";
+
+option csharp_namespace = "Microservicio.Administracion.Protos";
+
+import "google/protobuf/empty.proto";
+
+service UsuariosService {
+  rpc ObtenerUsuarioPorId (UsuarioPorIdRequest) returns (UsuarioResponse);
+  rpc InsertarUsuario (InsertarUsuarioRequest) returns (UsuarioResponse);
+  rpc ActualizarUsuario (ActualizarUsuarioRequest) returns (UsuarioResponse);
+  rpc EliminarUsuario (EliminarUsuarioRequest) returns (EliminarUsuarioResponse);
+  rpc ObtenerTodosUsuarios (google.protobuf.Empty) returns (UsuariosListResponse);
+  rpc ObtenerUsuarioPorNombre (UsuarioPorNombreRequest) returns (UsuarioResponse);
+}
+
+// Requests
+message UsuarioPorIdRequest {
+  int32 id_usuario = 1;
+}
+
+message UsuarioPorNombreRequest {
+  string nombre_usuario = 1;
+}
+
+message InsertarUsuarioRequest {
+  string nombre_usuario = 1;
+  string contrasena = 2;
+  string rol = 3;
+  int32 id_empleado = 4;
+}
+
+message ActualizarUsuarioRequest {
+  int32 id_usuario = 1;
+  string nombre_usuario = 2;
+  string contrasena = 3;
+  string rol = 4;
+  int32 id_empleado = 5;
+}
+
+message EliminarUsuarioRequest {
+  int32 id_usuario = 1;
+}
+
+// Responses
+message UsuarioResponse {
+  bool success = 1;
+  string message = 2;
+  UsuarioData usuario = 3;
+}
+
+message UsuariosListResponse {
+  bool success = 1;
+  string message = 2;
+  repeated UsuarioData usuarios = 3;
+}
+
+message EliminarUsuarioResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message UsuarioData {
+  int32 id_usuario = 1;
+  string nombre_usuario = 2;
+  string rol = 3;
+  int32 id_empleado = 4;
+  EmpleadoData empleado = 5;
+}
+
+message EmpleadoData {
+  int32 id_empleado = 1;
+  string nombre = 2;
+  string email = 3;
+  string telefono = 4;
+}

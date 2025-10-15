@@ -19,12 +19,12 @@ builder.Services.AddGrpc();
 // Registrar clientes gRPC de otros microservicios
 builder.Services.AddGrpcClient<MedicosService.MedicosServiceClient>(o =>
 {
-    o.Address = new Uri("http://localhost:5100"); // Cambia al puerto de tu microservicio de administración
+    o.Address = new Uri("http://10.79.13.104:5100"); // Cambia al puerto de tu microservicio de administración
 });
 
 builder.Services.AddGrpcClient<PacientesService.PacientesServiceClient>(o =>
 {
-    o.Address = new Uri("http://localhost:5100"); // Cambia al puerto de tu microservicio de pacientes
+    o.Address = new Uri("http://10.79.13.104:5100"); // Cambia al puerto de tu microservicio de pacientes
 });
 
 var app = builder.Build();

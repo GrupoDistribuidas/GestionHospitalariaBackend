@@ -94,22 +94,22 @@ builder.Services.AddCors(options =>
 // gRPC Clients
 builder.Services.AddGrpcClient<MedicosService.MedicosServiceClient>(o =>
 {
-    o.Address = new Uri("http://localhost:5100"); // Microservicio Administracion
+    o.Address = new Uri("http://10.79.13.104:5100"); // Microservicio Administracion
 });
 
 builder.Services.AddGrpcClient<PacientesService.PacientesServiceClient>(o =>
 {
-    o.Address = new Uri("http://localhost:5100"); // Microservicio Administracion
+    o.Address = new Uri("http://10.79.13.104:5100"); // Microservicio Administracion
 });
 
 builder.Services.AddGrpcClient<ConsultasService.ConsultasServiceClient>(o =>
 {
-    o.Address = new Uri("http://localhost:5105"); // Microservicio Consultas
+    o.Address = new Uri("http://10.79.14.120:5105"); // Microservicio Consultas
 });
 
 builder.Services.AddGrpcClient<EspecialidadesService.EspecialidadesServiceClient>(o =>
 {
-    o.Address = new Uri("http://localhost:5100"); // Microservicio Administracion
+    o.Address = new Uri("http://10.79.13.104:5100"); // Microservicio Administracion
 });
 
 var app = builder.Build();

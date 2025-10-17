@@ -83,7 +83,7 @@ namespace Microservicio.Administracion.Data
                 entity.HasKey(u => u.IdUsuario);
                 entity.Property(u => u.IdUsuario).HasColumnName("id_usuario");
                 entity.Property(u => u.NombreUsuario).HasColumnName("nombre_usuario").IsRequired().HasMaxLength(50);
-                entity.Property(u => u.Contraseña).HasColumnName("contraseña").IsRequired().HasMaxLength(255);
+                entity.Property(u => u.Contraseña).HasColumnName("contrasena").IsRequired().HasMaxLength(255);
                 entity.Property(u => u.Rol).HasColumnName("rol").IsRequired().HasMaxLength(20).HasDefaultValue("Usuario");
                 entity.Property(u => u.IdEmpleado).HasColumnName("id_empleado");
 

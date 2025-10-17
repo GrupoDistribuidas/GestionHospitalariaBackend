@@ -13,11 +13,16 @@ builder.Services.AddDbContext<AdministracionDbContext>(options =>
     options.UseMySql(connectionStringCentral, ServerVersion.AutoDetect(connectionStringCentral)));
 
 // Configurar Entity Framework para Clinica Extension (pacientes)
-var connectionStringClinica = builder.Configuration.GetConnectionString("ClinicaExtension")
-    ?? throw new InvalidOperationException("Connection string 'ClinicaExtension' not found.");
+// dejamos la conexión por defecto registrada para backward-compat, pero también registramos la fábrica
+var connectionStringClinica = builder.Configuration.GetConnectionString("ClinicaExtension");
+if (!string.IsNullOrEmpty(connectionStringClinica))
+{
+    builder.Services.AddDbContext<ClinicaExtensionDbContext>(options =>
+        options.UseMySql(connectionStringClinica, ServerVersion.AutoDetect(connectionStringClinica)));
+}
 
-builder.Services.AddDbContext<ClinicaExtensionDbContext>(options =>
-    options.UseMySql(connectionStringClinica, ServerVersion.AutoDetect(connectionStringClinica)));
+// Registrar la fábrica para crear contexts dinámicamente según el id de centro
+builder.Services.AddSingleton<IClinicaDbContextFactory, ClinicaDbContextFactory>();
 
 // Agregar gRPC
 builder.Services.AddGrpc();

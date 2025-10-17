@@ -23,9 +23,14 @@ namespace ApiGateway.Controllers
         {
             try
             {
-                var centroClaim = User.Claims.FirstOrDefault(c => c.Type == "id_centro_medico")?.Value;
+                // Si el usuario es Admin, no filtramos por centro (queremos todos los medicos)
+                var isAdmin = User.IsInRole("Admin") || User.Claims.Any(c => c.Type == "rol_usuario" && c.Value == "Admin");
                 Metadata? headers = null;
-                if (!string.IsNullOrEmpty(centroClaim)) headers = new Metadata { { "x-centro-medico", centroClaim } };
+                if (!isAdmin)
+                {
+                    var centroClaim = User.Claims.FirstOrDefault(c => c.Type == "id_centro_medico")?.Value;
+                    if (!string.IsNullOrEmpty(centroClaim)) headers = new Metadata { { "x-centro-medico", centroClaim } };
+                }
 
                 var response = await _medicosClient.ObtenerTodosMedicosAsync(new Empty(), headers != null ? new CallOptions(headers) : default);
                 return Ok(response.Medicos);

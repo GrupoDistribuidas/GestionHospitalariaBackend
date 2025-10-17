@@ -75,7 +75,9 @@ namespace ApiGateway.Controllers
                     Diagnostico = request.Diagnostico ?? string.Empty
                 };
 
-                var response = await _consultasClient.ObtenerReporteConsultasPorMedicoAsync(grpcRequest);
+                // Forzamos metadata para que el microservicio de Consultas genere un reporte global
+                var headers = new Metadata { { "x-rol-usuario", "Admin" } };
+                var response = await _consultasClient.ObtenerReporteConsultasPorMedicoAsync(grpcRequest, headers);
 
                 // Contar filtros activos
                 int filtrosActivos = 0;

@@ -89,11 +89,12 @@ namespace ApiGateway.Controllers
 
             try
             {
+                var isAdmin = User.IsInRole("Admin") || User.Claims.Any(c => c.Type == "rol_usuario" && c.Value == "Admin");
                 var centroClaim = User.Claims.FirstOrDefault(c => c.Type == "id_centro_medico")?.Value;
                 Metadata? headers = null;
-                if (!string.IsNullOrEmpty(centroClaim)) headers = new Metadata { { "x-centro-medico", centroClaim } };
+                if (!isAdmin && !string.IsNullOrEmpty(centroClaim)) headers = new Metadata { { "x-centro-medico", centroClaim } };
 
-                _logger.LogInformation("ApiGateway: InsertarConsulta - id_paciente={IdPaciente} id_medico={IdMedico} centroClaim={Centro}", request.IdPaciente, request.IdMedico, centroClaim);
+                _logger.LogInformation("ApiGateway: InsertarConsulta - id_paciente={IdPaciente} id_medico={IdMedico} centroClaim={Centro} isAdmin={IsAdmin}", request.IdPaciente, request.IdMedico, centroClaim, isAdmin);
                 if (headers != null) _logger.LogInformation("ApiGateway: Enviando metadata a Consultas: x-centro-medico={Centro}", centroClaim);
 
                 var response = await _client.InsertarConsultaAsync(request, headers != null ? new CallOptions(headers) : default);

@@ -50,7 +50,12 @@ namespace Microservicio.Consultas.Services
             // Validaciones con microservicio de pacientes y medicos
             try
             {
-                var paciente = await _pacientesClient.ObtenerPacientePorIdAsync(new PacientePorIdRequest { IdPaciente = request.IdPaciente });
+                // Propagar header x-centro-medico si existe
+                var centroHeader = context.RequestHeaders.Get("x-centro-medico")?.Value;
+                Metadata? headers = null;
+                if (!string.IsNullOrEmpty(centroHeader)) headers = new Metadata { { "x-centro-medico", centroHeader } };
+
+                var paciente = await _pacientesClient.ObtenerPacientePorIdAsync(new PacientePorIdRequest { IdPaciente = request.IdPaciente }, headers != null ? new CallOptions(headers) : default);
             }
             catch
             {
@@ -59,7 +64,11 @@ namespace Microservicio.Consultas.Services
 
             try
             {
-                var medico = await _medicosClient.ObtenerMedicoPorIdAsync(new MedicoPorIdRequest { IdEmpleado = request.IdMedico });
+                var centroHeader2 = context.RequestHeaders.Get("x-centro-medico")?.Value;
+                Metadata? headers2 = null;
+                if (!string.IsNullOrEmpty(centroHeader2)) headers2 = new Metadata { { "x-centro-medico", centroHeader2 } };
+
+                var medico = await _medicosClient.ObtenerMedicoPorIdAsync(new MedicoPorIdRequest { IdEmpleado = request.IdMedico }, headers2 != null ? new CallOptions(headers2) : default);
             }
             catch
             {
@@ -91,7 +100,11 @@ namespace Microservicio.Consultas.Services
             // Validaciones externas
             try
             {
-                var paciente = await _pacientesClient.ObtenerPacientePorIdAsync(new PacientePorIdRequest { IdPaciente = request.IdPaciente });
+                var centroHeaderUp = context.RequestHeaders.Get("x-centro-medico")?.Value;
+                Metadata? headersUp = null;
+                if (!string.IsNullOrEmpty(centroHeaderUp)) headersUp = new Metadata { { "x-centro-medico", centroHeaderUp } };
+
+                var paciente = await _pacientesClient.ObtenerPacientePorIdAsync(new PacientePorIdRequest { IdPaciente = request.IdPaciente }, headersUp != null ? new CallOptions(headersUp) : default);
             }
             catch
             {
@@ -100,7 +113,11 @@ namespace Microservicio.Consultas.Services
 
             try
             {
-                var medico = await _medicosClient.ObtenerMedicoPorIdAsync(new MedicoPorIdRequest { IdEmpleado = request.IdMedico });
+                var centroHeaderUp2 = context.RequestHeaders.Get("x-centro-medico")?.Value;
+                Metadata? headersUp2 = null;
+                if (!string.IsNullOrEmpty(centroHeaderUp2)) headersUp2 = new Metadata { { "x-centro-medico", centroHeaderUp2 } };
+
+                var medico = await _medicosClient.ObtenerMedicoPorIdAsync(new MedicoPorIdRequest { IdEmpleado = request.IdMedico }, headersUp2 != null ? new CallOptions(headersUp2) : default);
             }
             catch
             {
@@ -181,7 +198,11 @@ namespace Microservicio.Consultas.Services
                     try
                     {
                         // Obtener información del médico desde el microservicio de administración
-                        var medicoInfo = await _medicosClient.ObtenerMedicoPorIdAsync(new MedicoPorIdRequest { IdEmpleado = medicoId });
+                        var centroHeaderRpt = context.RequestHeaders.Get("x-centro-medico")?.Value;
+                        Metadata? headersRpt = null;
+                        if (!string.IsNullOrEmpty(centroHeaderRpt)) headersRpt = new Metadata { { "x-centro-medico", centroHeaderRpt } };
+
+                        var medicoInfo = await _medicosClient.ObtenerMedicoPorIdAsync(new MedicoPorIdRequest { IdEmpleado = medicoId }, headersRpt != null ? new CallOptions(headersRpt) : default);
 
                         var consultasDelMedico = consultas.Where(c => c.IdMedico == medicoId).ToList();
 
@@ -201,7 +222,7 @@ namespace Microservicio.Consultas.Services
                             try
                             {
                                 // Obtener información del paciente
-                                var pacienteInfo = await _pacientesClient.ObtenerPacientePorIdAsync(new PacientePorIdRequest { IdPaciente = consulta.IdPaciente });
+                                var pacienteInfo = await _pacientesClient.ObtenerPacientePorIdAsync(new PacientePorIdRequest { IdPaciente = consulta.IdPaciente }, headersRpt != null ? new CallOptions(headersRpt) : default);
 
                                 var consultaReporte = new ConsultaReporteResponse
                                 {

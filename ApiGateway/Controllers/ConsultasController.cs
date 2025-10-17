@@ -11,10 +11,12 @@ namespace ApiGateway.Controllers
     public class ConsultasController : ControllerBase
     {
         private readonly ConsultasService.ConsultasServiceClient _client;
+        private readonly ILogger<ConsultasController> _logger;
 
-        public ConsultasController(ConsultasService.ConsultasServiceClient client)
+        public ConsultasController(ConsultasService.ConsultasServiceClient client, ILogger<ConsultasController> logger)
         {
             _client = client;
+            _logger = logger;
         }
 
         [HttpGet]
@@ -90,6 +92,9 @@ namespace ApiGateway.Controllers
                 var centroClaim = User.Claims.FirstOrDefault(c => c.Type == "id_centro_medico")?.Value;
                 Metadata? headers = null;
                 if (!string.IsNullOrEmpty(centroClaim)) headers = new Metadata { { "x-centro-medico", centroClaim } };
+
+                _logger.LogInformation("ApiGateway: InsertarConsulta - id_paciente={IdPaciente} id_medico={IdMedico} centroClaim={Centro}", request.IdPaciente, request.IdMedico, centroClaim);
+                if (headers != null) _logger.LogInformation("ApiGateway: Enviando metadata a Consultas: x-centro-medico={Centro}", centroClaim);
 
                 var response = await _client.InsertarConsultaAsync(request, headers != null ? new CallOptions(headers) : default);
                 return Ok(response);

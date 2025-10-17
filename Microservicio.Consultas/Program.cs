@@ -13,6 +13,9 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 builder.Services.AddDbContext<ConsultasDbContext>(options =>
     options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString)));
 
+// Registrar factory para crear ConsultasDbContext por centro
+builder.Services.AddSingleton<IConsultasDbContextFactory, ConsultasDbContextFactory>();
+
 // Registrar gRPC
 builder.Services.AddGrpc();
 

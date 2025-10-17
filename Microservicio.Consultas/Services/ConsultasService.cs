@@ -12,24 +12,35 @@ namespace Microservicio.Consultas.Services
     // Cambiamos el nombre para evitar conflictos con el tipo generado por gRPC
     public class ConsultasServiceImpl : ConsultasService.ConsultasServiceBase
     {
-        private readonly ConsultasDbContext _dbContext;
+        private readonly ConsultasDbContext _dbContext; // mantenemos para compatibilidad en scope, pero no lo usaremos directamente
         private readonly PacientesService.PacientesServiceClient _pacientesClient;
         private readonly MedicosService.MedicosServiceClient _medicosClient;
+        private readonly IConsultasDbContextFactory _dbFactory;
 
         public ConsultasServiceImpl(
             ConsultasDbContext dbContext,
+            IConsultasDbContextFactory dbFactory,
             PacientesService.PacientesServiceClient pacientesClient,
             MedicosService.MedicosServiceClient medicosClient)
         {
             _dbContext = dbContext;
+            _dbFactory = dbFactory;
             _pacientesClient = pacientesClient;
             _medicosClient = medicosClient;
         }
 
         public override async Task<ConsultaResponse> ObtenerConsultaPorId(ConsultaPorIdRequest request, ServerCallContext context)
         {
-            var consulta = await _dbContext.ConsultasMedicas
-                .FirstOrDefaultAsync(c => c.IdConsultaMedica == request.IdConsultaMedica);
+            var centroHeader = context.RequestHeaders.Get("x-centro-medico")?.Value;
+            int centroId = 1;
+            if (!string.IsNullOrEmpty(centroHeader) && int.TryParse(centroHeader, out var parsedCentro)) centroId = parsedCentro;
+
+            // Log para trazabilidad
+            var logger = context.GetHttpContext()?.RequestServices.GetService<ILogger<ConsultasServiceImpl>>();
+            logger?.LogInformation("ConsultasService: ObtenerConsultaPorId - centro resuelto={Centro}", centroId);
+
+            using var db = _dbFactory.CreateForCentro(centroId);
+            var consulta = await db.ConsultasMedicas.FirstOrDefaultAsync(c => c.IdConsultaMedica == request.IdConsultaMedica);
 
             if (consulta == null)
                 throw new RpcException(new Status(StatusCode.NotFound, "Consulta no encontrada"));
@@ -39,7 +50,15 @@ namespace Microservicio.Consultas.Services
 
         public override async Task<ConsultasListResponse> ObtenerTodasConsultas(Empty request, ServerCallContext context)
         {
-            var consultas = await _dbContext.ConsultasMedicas.ToListAsync();
+            var centroHeaderAll = context.RequestHeaders.Get("x-centro-medico")?.Value;
+            int centroIdAll = 1;
+            if (!string.IsNullOrEmpty(centroHeaderAll) && int.TryParse(centroHeaderAll, out var pAll)) centroIdAll = pAll;
+
+            var loggerAll = context.GetHttpContext()?.RequestServices.GetService<ILogger<ConsultasServiceImpl>>();
+            loggerAll?.LogInformation("ConsultasService: ObtenerTodasConsultas - centro resuelto={Centro}", centroIdAll);
+
+            using var dbAll = _dbFactory.CreateForCentro(centroIdAll);
+            var consultas = await dbAll.ConsultasMedicas.ToListAsync();
             var response = new ConsultasListResponse();
             response.Consultas.AddRange(consultas.Select(MapToResponse));
             return response;
@@ -54,6 +73,9 @@ namespace Microservicio.Consultas.Services
                 var centroHeader = context.RequestHeaders.Get("x-centro-medico")?.Value;
                 Metadata? headers = null;
                 if (!string.IsNullOrEmpty(centroHeader)) headers = new Metadata { { "x-centro-medico", centroHeader } };
+
+                var loggerIns = context.GetHttpContext()?.RequestServices.GetService<ILogger<ConsultasServiceImpl>>();
+                loggerIns?.LogInformation("ConsultasService: InsertarConsulta - validando paciente en centro={Centro} id_paciente={IdPaciente}", centroHeader ?? "(null)", request.IdPaciente);
 
                 var paciente = await _pacientesClient.ObtenerPacientePorIdAsync(new PacientePorIdRequest { IdPaciente = request.IdPaciente }, headers != null ? new CallOptions(headers) : default);
             }
@@ -75,6 +97,13 @@ namespace Microservicio.Consultas.Services
                 throw new RpcException(new Status(StatusCode.NotFound, "Medico no encontrado"));
             }
 
+            var centroHeaderIns = context.RequestHeaders.Get("x-centro-medico")?.Value;
+            int centroIdIns = 1;
+            if (!string.IsNullOrEmpty(centroHeaderIns) && int.TryParse(centroHeaderIns, out var pIns)) centroIdIns = pIns;
+
+            var loggerIns2 = context.GetHttpContext()?.RequestServices.GetService<ILogger<ConsultasServiceImpl>>();
+            loggerIns2?.LogInformation("ConsultasService: InsertarConsulta - guardando consulta en centro={Centro}", centroIdIns);
+
             var consulta = new ConsultaMedica
             {
                 Fecha = DateTime.Parse(request.Fecha),
@@ -85,15 +114,20 @@ namespace Microservicio.Consultas.Services
                 IdPaciente = request.IdPaciente,
                 IdMedico = request.IdMedico
             };
-
-            _dbContext.ConsultasMedicas.Add(consulta);
-            await _dbContext.SaveChangesAsync();
+            using var dbIns = _dbFactory.CreateForCentro(centroIdIns);
+            dbIns.ConsultasMedicas.Add(consulta);
+            await dbIns.SaveChangesAsync();
             return MapToResponse(consulta);
         }
 
         public override async Task<ConsultaResponse> ActualizarConsulta(ActualizarConsultaRequest request, ServerCallContext context)
         {
-            var consulta = await _dbContext.ConsultasMedicas.FindAsync(request.IdConsultaMedica);
+            var centroHeaderUpd = context.RequestHeaders.Get("x-centro-medico")?.Value;
+            int centroIdUpd = 1;
+            if (!string.IsNullOrEmpty(centroHeaderUpd) && int.TryParse(centroHeaderUpd, out var pUpd)) centroIdUpd = pUpd;
+
+            using var dbUpd = _dbFactory.CreateForCentro(centroIdUpd);
+            var consulta = await dbUpd.ConsultasMedicas.FindAsync(request.IdConsultaMedica);
             if (consulta == null)
                 throw new RpcException(new Status(StatusCode.NotFound, "Consulta no encontrada"));
 
@@ -132,18 +166,22 @@ namespace Microservicio.Consultas.Services
             consulta.IdPaciente = request.IdPaciente;
             consulta.IdMedico = request.IdMedico;
 
-            await _dbContext.SaveChangesAsync();
+            await dbUpd.SaveChangesAsync();
             return MapToResponse(consulta);
         }
 
         public override async Task<EliminarConsultaResponse> EliminarConsulta(EliminarConsultaRequest request, ServerCallContext context)
         {
-            var consulta = await _dbContext.ConsultasMedicas.FindAsync(request.IdConsultaMedica);
+            var centroHeaderDel = context.RequestHeaders.Get("x-centro-medico")?.Value;
+            int centroIdDel = 1;
+            if (!string.IsNullOrEmpty(centroHeaderDel) && int.TryParse(centroHeaderDel, out var pDel)) centroIdDel = pDel;
+
+            using var dbDel = _dbFactory.CreateForCentro(centroIdDel);
+            var consulta = await dbDel.ConsultasMedicas.FindAsync(request.IdConsultaMedica);
             if (consulta == null)
                 throw new RpcException(new Status(StatusCode.NotFound, "Consulta no encontrada"));
-
-            _dbContext.ConsultasMedicas.Remove(consulta);
-            await _dbContext.SaveChangesAsync();
+            dbDel.ConsultasMedicas.Remove(consulta);
+            await dbDel.SaveChangesAsync();
             return new EliminarConsultaResponse { Exito = true };
         }
 

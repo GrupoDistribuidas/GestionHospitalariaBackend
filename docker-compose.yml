@@ -1,0 +1,96 @@
+services:
+  administracion:
+    build:
+      context: .
+      dockerfile: Microservicio.Administracion/Dockerfile
+    container_name: administracion
+    environment:
+      - ASPNETCORE_URLS=http://+:5100
+    ports:
+      - "5100:5100"
+    depends_on:
+      - mysql_hosp
+
+  autenticacion:
+    build:
+      context: .
+      dockerfile: Microservicio.Autenticacion/Dockerfile
+    container_name: autenticacion
+    environment:
+      - ASPNETCORE_URLS=http://+:5101
+    ports:
+      - "5101:5101"
+    depends_on:
+      - mysql_hosp
+
+  consultas:
+    build:
+      context: .
+      dockerfile: Microservicio.Consultas/Dockerfile
+    container_name: consultas
+    environment:
+      - ASPNETCORE_URLS=http://+:5105
+    ports:
+      - "5105:5105"
+    depends_on:
+      - administracion
+      - mysql_ext1
+
+  apigateway:
+    build:
+      context: .
+      dockerfile: ApiGateway/Dockerfile
+    container_name: apigateway
+    environment:
+      - ASPNETCORE_URLS=http://+:5088
+      - ASPNETCORE_ENVIRONMENT=Development
+    ports:
+      - "5088:5088"
+    depends_on:
+      - administracion
+      - consultas
+
+  mysql_hosp:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: hosp_central
+      MYSQL_USER: paul
+      MYSQL_PASSWORD: 12345678
+    # mapear a puerto distinto en el host para no chocar con MySQL local
+    ports:
+      - "33070:3306"
+    volumes:
+      - mysql_hosp_data:/var/lib/mysql
+      - ./docker/mysql-init/mysql_hosp:/docker-entrypoint-initdb.d:ro
+
+  mysql_ext1:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: extension_1
+      MYSQL_USER: paul
+      MYSQL_PASSWORD: 12345678
+    ports:
+      - "33061:3306"
+    volumes:
+      - mysql_ext1_data:/var/lib/mysql
+      - ./docker/mysql-init/mysql_ext1:/docker-entrypoint-initdb.d:ro
+
+  mysql_ext2:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: extension_2
+      MYSQL_USER: paul
+      MYSQL_PASSWORD: 12345678
+    ports:
+      - "33062:3306"
+    volumes:
+      - mysql_ext2_data:/var/lib/mysql
+      - ./docker/mysql-init/mysql_ext2:/docker-entrypoint-initdb.d:ro
+
+volumes:
+  mysql_hosp_data:
+  mysql_ext1_data:
+  mysql_ext2_data:

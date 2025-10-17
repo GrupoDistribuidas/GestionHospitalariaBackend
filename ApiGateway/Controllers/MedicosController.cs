@@ -23,7 +23,11 @@ namespace ApiGateway.Controllers
         {
             try
             {
-                var response = await _medicosClient.ObtenerTodosMedicosAsync(new Empty());
+                var centroClaim = User.Claims.FirstOrDefault(c => c.Type == "id_centro_medico")?.Value;
+                Metadata? headers = null;
+                if (!string.IsNullOrEmpty(centroClaim)) headers = new Metadata { { "x-centro-medico", centroClaim } };
+
+                var response = await _medicosClient.ObtenerTodosMedicosAsync(new Empty(), headers != null ? new CallOptions(headers) : default);
                 return Ok(response.Medicos);
             }
             catch (RpcException ex)
@@ -37,8 +41,12 @@ namespace ApiGateway.Controllers
         {
             try
             {
+                var centroClaim = User.Claims.FirstOrDefault(c => c.Type == "id_centro_medico")?.Value;
+                Metadata? headers = null;
+                if (!string.IsNullOrEmpty(centroClaim)) headers = new Metadata { { "x-centro-medico", centroClaim } };
+
                 var response = await _medicosClient.ObtenerMedicoPorIdAsync(
-                    new AdminProtos.MedicoPorIdRequest { IdEmpleado = id }
+                    new AdminProtos.MedicoPorIdRequest { IdEmpleado = id }, headers != null ? new CallOptions(headers) : default
                 );
                 return Ok(response);
             }

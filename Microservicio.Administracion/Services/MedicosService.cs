@@ -26,7 +26,21 @@ namespace Microservicio.Administracion.Services
 
         public override async Task<MedicosListResponse> ObtenerTodosMedicos(Google.Protobuf.WellKnownTypes.Empty request, ServerCallContext context)
         {
-            var medicos = await _dbContext.Empleados.ToListAsync();
+            // Si se proporciona header x-centro-medico, filtrar por ese centro
+            int? centroFilter = null;
+            var md = context.RequestHeaders.Get("x-centro-medico");
+            if (md != null && int.TryParse(md.Value, out var parsed)) centroFilter = parsed;
+
+            List<Empleado> medicos;
+            if (centroFilter.HasValue)
+            {
+                medicos = await _dbContext.Empleados.Where(e => e.IdCentroMedico == centroFilter.Value).ToListAsync();
+            }
+            else
+            {
+                medicos = await _dbContext.Empleados.ToListAsync();
+            }
+
             var response = new MedicosListResponse();
             response.Medicos.AddRange(medicos.Select(MapToResponse));
             return response;
@@ -64,6 +78,13 @@ namespace Microservicio.Administracion.Services
             var medico = await _dbContext.Empleados.FindAsync(request.IdEmpleado);
             if (medico == null)
                 throw new RpcException(new Status(StatusCode.NotFound, "Médico no encontrado"));
+
+            // Si se especifica x-centro-medico, validar que el médico pertenece a ese centro
+            var md2 = context.RequestHeaders.Get("x-centro-medico");
+            if (md2 != null && int.TryParse(md2.Value, out var c2) && medico.IdCentroMedico != c2)
+            {
+                throw new RpcException(new Status(StatusCode.NotFound, "Médico no encontrado en este centro"));
+            }
 
             // Validar existencia de la especialidad
             var especialidad = await _dbContext.Especialidades

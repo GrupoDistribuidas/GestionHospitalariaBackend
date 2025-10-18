@@ -8,6 +8,9 @@ using ApiGateway.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Permitir HTTP/2 sin TLS para llamadas gRPC no cifradas dentro de Docker
+AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2UnencryptedSupport", true);
+
 // Controllers y Swagger
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
@@ -94,22 +97,26 @@ builder.Services.AddCors(options =>
 // gRPC Clients
 builder.Services.AddGrpcClient<MedicosService.MedicosServiceClient>(o =>
 {
-    o.Address = new Uri("http://10.79.13.31:5100"); // Microservicio Administracion
+    var adminUrl = builder.Configuration["Grpc:AdministracionUrl"] ?? "http://administracion:5100";
+    o.Address = new Uri(adminUrl); // Microservicio Administracion
 });
 
 builder.Services.AddGrpcClient<PacientesService.PacientesServiceClient>(o =>
 {
-    o.Address = new Uri("http://10.79.13.31:5100"); // Microservicio Administracion
+    var adminUrl2 = builder.Configuration["Grpc:AdministracionUrl"] ?? "http://administracion:5100";
+    o.Address = new Uri(adminUrl2); // Microservicio Administracion
 });
 
 builder.Services.AddGrpcClient<ConsultasService.ConsultasServiceClient>(o =>
 {
-    o.Address = new Uri("http://10.79.14.104:5105"); // Microservicio Consultas
+    var consultasUrl = builder.Configuration["Grpc:ConsultasUrl"] ?? "http://consultas:5105";
+    o.Address = new Uri(consultasUrl); // Microservicio Consultas
 });
 
 builder.Services.AddGrpcClient<EspecialidadesService.EspecialidadesServiceClient>(o =>
 {
-    o.Address = new Uri("http://10.79.13.31:5100"); // Microservicio Administracion
+    var adminUrl3 = builder.Configuration["Grpc:AdministracionUrl"] ?? "http://administracion:5100";
+    o.Address = new Uri(adminUrl3); // Microservicio Administracion
 });
 
 var app = builder.Build();

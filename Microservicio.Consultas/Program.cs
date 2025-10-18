@@ -13,18 +13,23 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 builder.Services.AddDbContext<ConsultasDbContext>(options =>
     options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString)));
 
+// Registrar factory para crear ConsultasDbContext por centro
+builder.Services.AddSingleton<IConsultasDbContextFactory, ConsultasDbContextFactory>();
+
 // Registrar gRPC
 builder.Services.AddGrpc();
 
 // Registrar clientes gRPC de otros microservicios
 builder.Services.AddGrpcClient<MedicosService.MedicosServiceClient>(o =>
 {
-    o.Address = new Uri("http://10.79.13.104:5100"); // Cambia al puerto de tu microservicio de administración
+    var adminUrl = builder.Configuration["Grpc:AdministracionUrl"] ?? "http://administracion:5100";
+    o.Address = new Uri(adminUrl); // Cambia al puerto de tu microservicio de administración
 });
 
 builder.Services.AddGrpcClient<PacientesService.PacientesServiceClient>(o =>
 {
-    o.Address = new Uri("http://10.79.13.104:5100"); // Cambia al puerto de tu microservicio de pacientes
+    var adminUrl2 = builder.Configuration["Grpc:AdministracionUrl"] ?? "http://administracion:5100";
+    o.Address = new Uri(adminUrl2); // Cambia al puerto de tu microservicio de pacientes
 });
 
 var app = builder.Build();

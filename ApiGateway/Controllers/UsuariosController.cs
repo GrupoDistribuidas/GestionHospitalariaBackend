@@ -23,7 +23,7 @@ namespace ApiGateway.Controllers
 
         private GrpcChannel CreateGrpcChannel()
         {
-            var administracionUrl = _configuration["Grpc:AdministracionUrl"] ?? "http://localhost:5100";
+            var administracionUrl = _configuration["Grpc:AdministracionUrl"] ?? "http://administracion:5100";
             return GrpcChannel.ForAddress(administracionUrl);
         }
 

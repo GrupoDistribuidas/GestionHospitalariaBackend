@@ -51,7 +51,33 @@ namespace ApiGateway.Controllers
                     Password = request.Password
                 };
 
-                var grpcResponse = await client.LoginAsync(grpcRequest);
+                // Intentar la llamada gRPC con reintentos para manejar condiciones de arranque/transitorias
+                Microservicio.Autenticacion.LoginReply? grpcResponse = null;
+                int maxAttemptsLogin = 3;
+                for (int attempt = 1; attempt <= maxAttemptsLogin; attempt++)
+                {
+                    try
+                    {
+                        grpcResponse = await client.LoginAsync(grpcRequest);
+                        break;
+                    }
+                    catch (Grpc.Core.RpcException rpcEx) when (rpcEx.StatusCode == Grpc.Core.StatusCode.Unavailable || rpcEx.StatusCode == Grpc.Core.StatusCode.DeadlineExceeded)
+                    {
+                        _logger.LogWarning(rpcEx, "Intento {Attempt} fallido (RpcException) al llamar a AuthService.LoginAsync", attempt);
+                    }
+                    catch (System.Net.Sockets.SocketException sockEx)
+                    {
+                        _logger.LogWarning(sockEx, "Intento {Attempt} fallido (SocketException) al llamar a AuthService.LoginAsync", attempt);
+                    }
+
+                    if (attempt < maxAttemptsLogin)
+                        await Task.Delay(1000 * attempt); // backoff simple: 1s, 2s, ...
+                }
+
+                if (grpcResponse == null)
+                {
+                    throw new InvalidOperationException($"No se pudo conectar al servicio de autenticación en {authServiceUrl} después de {maxAttemptsLogin} intentos.");
+                }
 
                 // Evaluar la respuesta
                 var success = !string.IsNullOrEmpty(grpcResponse.Token);
@@ -118,7 +144,33 @@ namespace ApiGateway.Controllers
                     Token = request.Token
                 };
 
-                var grpcResponse = await client.ValidateTokenAsync(grpcRequest);
+                // Reintentos para la validación de token
+                Microservicio.Autenticacion.TokenReply? grpcResponse = null;
+                int maxAttemptsToken = 3;
+                for (int attempt = 1; attempt <= maxAttemptsToken; attempt++)
+                {
+                    try
+                    {
+                        grpcResponse = await client.ValidateTokenAsync(grpcRequest);
+                        break;
+                    }
+                    catch (Grpc.Core.RpcException rpcEx) when (rpcEx.StatusCode == Grpc.Core.StatusCode.Unavailable || rpcEx.StatusCode == Grpc.Core.StatusCode.DeadlineExceeded)
+                    {
+                        _logger.LogWarning(rpcEx, "Intento {Attempt} fallido (RpcException) al llamar a AuthService.ValidateTokenAsync", attempt);
+                    }
+                    catch (System.Net.Sockets.SocketException sockEx)
+                    {
+                        _logger.LogWarning(sockEx, "Intento {Attempt} fallido (SocketException) al llamar a AuthService.ValidateTokenAsync", attempt);
+                    }
+
+                    if (attempt < maxAttemptsToken)
+                        await Task.Delay(1000 * attempt);
+                }
+
+                if (grpcResponse == null)
+                {
+                    throw new InvalidOperationException($"No se pudo conectar al servicio de autenticación en {authServiceUrl} después de {maxAttemptsToken} intentos.");
+                }
 
                 var response = new ValidateTokenResponse
                 {
@@ -211,7 +263,33 @@ namespace ApiGateway.Controllers
                     Username = request.Username
                 };
 
-                var grpcResponse = await client.SendPasswordByEmailAsync(grpcRequest);
+                // Reintentos para el envío de recuperación de contraseña
+                Microservicio.Autenticacion.PasswordRecoveryReply? grpcResponse = null;
+                int maxAttemptsPwd = 3;
+                for (int attempt = 1; attempt <= maxAttemptsPwd; attempt++)
+                {
+                    try
+                    {
+                        grpcResponse = await client.SendPasswordByEmailAsync(grpcRequest);
+                        break;
+                    }
+                    catch (Grpc.Core.RpcException rpcEx) when (rpcEx.StatusCode == Grpc.Core.StatusCode.Unavailable || rpcEx.StatusCode == Grpc.Core.StatusCode.DeadlineExceeded)
+                    {
+                        _logger.LogWarning(rpcEx, "Intento {Attempt} fallido (RpcException) al llamar a AuthService.SendPasswordByEmailAsync", attempt);
+                    }
+                    catch (System.Net.Sockets.SocketException sockEx)
+                    {
+                        _logger.LogWarning(sockEx, "Intento {Attempt} fallido (SocketException) al llamar a AuthService.SendPasswordByEmailAsync", attempt);
+                    }
+
+                    if (attempt < maxAttemptsPwd)
+                        await Task.Delay(1000 * attempt);
+                }
+
+                if (grpcResponse == null)
+                {
+                    throw new InvalidOperationException($"No se pudo conectar al servicio de autenticación en {authServiceUrl} después de {maxAttemptsPwd} intentos.");
+                }
 
                 var response = new Models.PasswordRecoveryResponse
                 {

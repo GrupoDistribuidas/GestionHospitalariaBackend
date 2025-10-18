@@ -9,16 +9,22 @@ namespace Microservicio.Administracion.Services
     // Cambié el nombre de la clase para evitar conflicto con el service generado
     public class PacientesServiceImpl : PacientesService.PacientesServiceBase
     {
-        private readonly ClinicaExtensionDbContext _dbContext;
+        private readonly IClinicaDbContextFactory _dbFactory;
 
-        public PacientesServiceImpl(ClinicaExtensionDbContext dbContext)
+        public PacientesServiceImpl(IClinicaDbContextFactory dbFactory)
         {
-            _dbContext = dbContext;
+            _dbFactory = dbFactory;
         }
 
         public override async Task<PacienteResponse> ObtenerPacientePorId(PacientePorIdRequest request, ServerCallContext context)
         {
-            var paciente = await _dbContext.Pacientes.FindAsync(request.IdPaciente);
+            // Resolver id del centro desde los metadata (header) si está presente
+            int centroId = 1; // por defecto central
+            var md = context.RequestHeaders.Get("x-centro-medico");
+            if (md != null && int.TryParse(md.Value, out var parsed)) centroId = parsed;
+
+            using var db = _dbFactory.CreateForCentro(centroId);
+            var paciente = await db.Pacientes.FindAsync(request.IdPaciente);
             if (paciente == null)
                 throw new RpcException(new Status(StatusCode.NotFound, "Paciente no encontrado"));
 
@@ -27,7 +33,12 @@ namespace Microservicio.Administracion.Services
 
         public override async Task<PacientesListResponse> ObtenerTodosPacientes(Google.Protobuf.WellKnownTypes.Empty request, ServerCallContext context)
         {
-            var pacientes = await _dbContext.Pacientes.ToListAsync();
+            var md2 = context.RequestHeaders.Get("x-centro-medico");
+            int centroId2 = 1;
+            if (md2 != null && int.TryParse(md2.Value, out var p2)) centroId2 = p2;
+
+            using var db2 = _dbFactory.CreateForCentro(centroId2);
+            var pacientes = await db2.Pacientes.ToListAsync();
             var response = new PacientesListResponse();
             response.Pacientes.AddRange(pacientes.Select(MapToResponse));
             return response;
@@ -44,14 +55,24 @@ namespace Microservicio.Administracion.Services
                 Direccion = request.Direccion
             };
 
-            _dbContext.Pacientes.Add(paciente);
-            await _dbContext.SaveChangesAsync();
+            var md3 = context.RequestHeaders.Get("x-centro-medico");
+            int centroId3 = 1;
+            if (md3 != null && int.TryParse(md3.Value, out var p3)) centroId3 = p3;
+
+            using var db3 = _dbFactory.CreateForCentro(centroId3);
+            db3.Pacientes.Add(paciente);
+            await db3.SaveChangesAsync();
             return MapToResponse(paciente);
         }
 
         public override async Task<PacienteResponse> ActualizarPaciente(ActualizarPacienteRequest request, ServerCallContext context)
         {
-            var paciente = await _dbContext.Pacientes.FindAsync(request.IdPaciente);
+            var md4 = context.RequestHeaders.Get("x-centro-medico");
+            int centroId4 = 1;
+            if (md4 != null && int.TryParse(md4.Value, out var p4)) centroId4 = p4;
+
+            using var db4 = _dbFactory.CreateForCentro(centroId4);
+            var paciente = await db4.Pacientes.FindAsync(request.IdPaciente);
             if (paciente == null)
                 throw new RpcException(new Status(StatusCode.NotFound, "Paciente no encontrado"));
 
@@ -61,18 +82,23 @@ namespace Microservicio.Administracion.Services
             paciente.Telefono = request.Telefono;
             paciente.Direccion = request.Direccion;
 
-            await _dbContext.SaveChangesAsync();
+            await db4.SaveChangesAsync();
             return MapToResponse(paciente);
         }
 
         public override async Task<EliminarPacienteResponse> EliminarPaciente(EliminarPacienteRequest request, ServerCallContext context)
         {
-            var paciente = await _dbContext.Pacientes.FindAsync(request.IdPaciente);
+            var md5 = context.RequestHeaders.Get("x-centro-medico");
+            int centroId5 = 1;
+            if (md5 != null && int.TryParse(md5.Value, out var p5)) centroId5 = p5;
+
+            using var db5 = _dbFactory.CreateForCentro(centroId5);
+            var paciente = await db5.Pacientes.FindAsync(request.IdPaciente);
             if (paciente == null)
                 throw new RpcException(new Status(StatusCode.NotFound, "Paciente no encontrado"));
 
-            _dbContext.Pacientes.Remove(paciente);
-            await _dbContext.SaveChangesAsync();
+            db5.Pacientes.Remove(paciente);
+            await db5.SaveChangesAsync();
             return new EliminarPacienteResponse { Exito = true };
         }
 

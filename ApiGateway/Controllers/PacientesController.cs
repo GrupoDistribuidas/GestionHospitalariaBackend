@@ -24,7 +24,15 @@ namespace ApiGateway.Controllers
         {
             try
             {
-                var response = await _pacientesClient.ObtenerTodosPacientesAsync(new Empty());
+                // Leer claim id_centro_medico
+                var centroClaim = User.Claims.FirstOrDefault(c => c.Type == "id_centro_medico")?.Value;
+                Metadata? headers = null;
+                if (!string.IsNullOrEmpty(centroClaim))
+                {
+                    headers = new Metadata { { "x-centro-medico", centroClaim } };
+                }
+
+                var response = await _pacientesClient.ObtenerTodosPacientesAsync(new Empty(), headers != null ? new CallOptions(headers) : default);
                 return Ok(response.Pacientes);
             }
             catch (RpcException ex)
@@ -38,8 +46,12 @@ namespace ApiGateway.Controllers
         {
             try
             {
+                var centroClaim = User.Claims.FirstOrDefault(c => c.Type == "id_centro_medico")?.Value;
+                Metadata? headers = null;
+                if (!string.IsNullOrEmpty(centroClaim)) headers = new Metadata { { "x-centro-medico", centroClaim } };
+
                 var response = await _pacientesClient.ObtenerPacientePorIdAsync(
-                    new ClinicaProtos.PacientePorIdRequest { IdPaciente = id }
+                    new ClinicaProtos.PacientePorIdRequest { IdPaciente = id }, headers != null ? new CallOptions(headers) : default
                 );
                 return Ok(response);
             }
@@ -54,7 +66,11 @@ namespace ApiGateway.Controllers
         {
             try
             {
-                var response = await _pacientesClient.InsertarPacienteAsync(request);
+                var centroClaim = User.Claims.FirstOrDefault(c => c.Type == "id_centro_medico")?.Value;
+                Metadata? headers = null;
+                if (!string.IsNullOrEmpty(centroClaim)) headers = new Metadata { { "x-centro-medico", centroClaim } };
+
+                var response = await _pacientesClient.InsertarPacienteAsync(request, headers != null ? new CallOptions(headers) : default);
                 return Ok(response);
             }
             catch (RpcException ex)
@@ -69,7 +85,11 @@ namespace ApiGateway.Controllers
             try
             {
                 request.IdPaciente = id;
-                var response = await _pacientesClient.ActualizarPacienteAsync(request);
+                var centroClaim = User.Claims.FirstOrDefault(c => c.Type == "id_centro_medico")?.Value;
+                Metadata? headers = null;
+                if (!string.IsNullOrEmpty(centroClaim)) headers = new Metadata { { "x-centro-medico", centroClaim } };
+
+                var response = await _pacientesClient.ActualizarPacienteAsync(request, headers != null ? new CallOptions(headers) : default);
                 return Ok(response);
             }
             catch (RpcException ex)
@@ -83,8 +103,12 @@ namespace ApiGateway.Controllers
         {
             try
             {
+                var centroClaim = User.Claims.FirstOrDefault(c => c.Type == "id_centro_medico")?.Value;
+                Metadata? headers = null;
+                if (!string.IsNullOrEmpty(centroClaim)) headers = new Metadata { { "x-centro-medico", centroClaim } };
+
                 var response = await _pacientesClient.EliminarPacienteAsync(
-                    new ClinicaProtos.EliminarPacienteRequest { IdPaciente = id }
+                    new ClinicaProtos.EliminarPacienteRequest { IdPaciente = id }, headers != null ? new CallOptions(headers) : default
                 );
                 return Ok(response);
             }

@@ -14,10 +14,10 @@ namespace Microservicio.Autenticacion.Models
         [Column("nombre_usuario")]
         public string NombreUsuario { get; set; } = string.Empty;
 
-        [Required]
-        [StringLength(255)]
-        [Column("contraseña")]
-        public string Contraseña { get; set; } = string.Empty;
+    [Required]
+    [StringLength(255)]
+    [Column("contrasena")]
+    public string Contraseña { get; set; } = string.Empty;
 
         [StringLength(50)]
         [Column("rol")]

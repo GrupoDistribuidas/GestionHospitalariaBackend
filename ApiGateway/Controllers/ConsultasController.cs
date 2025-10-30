@@ -57,6 +57,49 @@ namespace ApiGateway.Controllers
             }
         }
 
+        [HttpGet("medico/{id}")]
+        public async Task<IActionResult> GetConsultasPorMedico(int id)
+        {
+            var request = new Microservicio.Consultas.Protos.ReporteConsultasPorMedicoRequest { IdMedico = id };
+            try
+            {
+                var isAdmin = User.IsInRole("Admin") || User.Claims.Any(c => c.Type == "rol_usuario" && c.Value == "Admin");
+                var centroClaim = User.Claims.FirstOrDefault(c => c.Type == "id_centro_medico")?.Value;
+                Metadata? headers = null;
+                if (!isAdmin && !string.IsNullOrEmpty(centroClaim)) headers = new Metadata { { "x-centro-medico", centroClaim } };
+
+                _logger.LogInformation("ApiGateway: ObtenerConsultasPorMedico - id_medico={IdMedico} centroClaim={Centro} isAdmin={IsAdmin}", id, centroClaim, isAdmin);
+
+                var response = await _client.ObtenerReporteConsultasPorMedicoAsync(request, headers != null ? new CallOptions(headers) : default);
+
+                // Seleccionar el bloque del médico solicitado (si el servicio devuelve agrupados)
+                var medicoBlock = response.Medicos.FirstOrDefault(m => m.IdMedico == id) ?? response.Medicos.FirstOrDefault();
+
+                var consultas = new List<object>();
+                if (medicoBlock != null)
+                {
+                    consultas = medicoBlock.Consultas.Select(c => new
+                    {
+                        IdConsultaMedica = c.IdConsultaMedica,
+                        Fecha = c.Fecha,
+                        Hora = c.Hora,
+                        Motivo = c.Motivo,
+                        Diagnostico = c.Diagnostico,
+                        Tratamiento = c.Tratamiento,
+                        IdPaciente = c.IdPaciente,
+                        IdMedico = c.IdMedico,
+                        NombrePaciente = c.NombrePaciente
+                    }).ToList<object>();
+                }
+
+                return Ok(consultas);
+            }
+            catch (RpcException ex)
+            {
+                return StatusCode(500, ex.Status.Detail);
+            }
+        }
+
         // DTO que acepta propiedades en snake_case (compatibilidad con frontends que envían id_paciente)
         public class CrearConsultaDto
         {

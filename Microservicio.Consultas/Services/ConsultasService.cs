@@ -29,70 +29,9 @@ namespace Microservicio.Consultas.Services
             _medicosClient = medicosClient;
         }
 
-        public override async Task<ConsultaResponse> ObtenerConsultaPorId(ConsultaPorIdRequest request, ServerCallContext context)
-        {
-            var centroHeader = context.RequestHeaders.Get("x-centro-medico")?.Value;
-            int centroId = 1;
-            if (!string.IsNullOrEmpty(centroHeader) && int.TryParse(centroHeader, out var parsedCentro)) centroId = parsedCentro;
-
-            // Log para trazabilidad
-            var logger = context.GetHttpContext()?.RequestServices.GetService<ILogger<ConsultasServiceImpl>>();
-            logger?.LogInformation("ConsultasService: ObtenerConsultaPorId - centro resuelto={Centro}", centroId);
-
-            using var db = _dbFactory.CreateForCentro(centroId);
-            var consulta = await db.ConsultasMedicas.FirstOrDefaultAsync(c => c.IdConsultaMedica == request.IdConsultaMedica);
-
-            if (consulta == null)
-                throw new RpcException(new Status(StatusCode.NotFound, "Consulta no encontrada"));
-
-            return MapToResponse(consulta);
-        }
-
-        public override async Task<ConsultasListResponse> ObtenerTodasConsultas(Empty request, ServerCallContext context)
-        {
-            // Si el caller es Admin, agregamos las consultas de todos los centros
-            var isAdmin = false;
-            try
-            {
-                var http = context.GetHttpContext();
-                if (http != null)
-                {
-                    var user = http.User;
-                    isAdmin = user.IsInRole("Admin") || user.Claims.Any(c => c.Type == "rol_usuario" && c.Value == "Admin");
-                }
-            }
-            catch { /* ignore */ }
-
-            var response = new ConsultasListResponse();
-            if (isAdmin)
-            {
-                var centers = new[] { 1, 2, 3 };
-                foreach (var c in centers)
-                {
-                    using var db = _dbFactory.CreateForCentro(c);
-                    var list = await db.ConsultasMedicas.ToListAsync();
-                    response.Consultas.AddRange(list.Select(MapToResponse));
-                }
-                return response;
-            }
-
-            // comportamiento normal por centro
-            var centroHeaderAll = context.RequestHeaders.Get("x-centro-medico")?.Value;
-            int centroIdAll = 1;
-            if (!string.IsNullOrEmpty(centroHeaderAll) && int.TryParse(centroHeaderAll, out var pAll)) centroIdAll = pAll;
-
-            var loggerAll = context.GetHttpContext()?.RequestServices.GetService<ILogger<ConsultasServiceImpl>>();
-            loggerAll?.LogInformation("ConsultasService: ObtenerTodasConsultas - centro resuelto={Centro}", centroIdAll);
-
-            using var dbAll = _dbFactory.CreateForCentro(centroIdAll);
-            var consultas = await dbAll.ConsultasMedicas.ToListAsync();
-            response.Consultas.AddRange(consultas.Select(MapToResponse));
-            return response;
-        }
-
         public override async Task<ConsultaResponse> InsertarConsulta(InsertarConsultaRequest request, ServerCallContext context)
         {
-            // Determinar si el caller es Admin
+            // Detectar si caller es Admin
             var isAdminCaller = false;
             try
             {
@@ -102,6 +41,8 @@ namespace Microservicio.Consultas.Services
                     var user = http.User;
                     isAdminCaller = user.IsInRole("Admin") || user.Claims.Any(c => c.Type == "rol_usuario" && c.Value == "Admin");
                 }
+                var rolHeader = context.RequestHeaders.Get("x-rol-usuario")?.Value;
+                if (!string.IsNullOrEmpty(rolHeader) && rolHeader == "Admin") isAdminCaller = true;
             }
             catch { }
 
@@ -180,6 +121,83 @@ namespace Microservicio.Consultas.Services
             using var dbIns = _dbFactory.CreateForCentro(centroIdIns);
             dbIns.ConsultasMedicas.Add(consulta);
             await dbIns.SaveChangesAsync();
+            return MapToResponse(consulta);
+        }
+
+        public override async Task<ConsultasListResponse> ObtenerTodasConsultas(Google.Protobuf.WellKnownTypes.Empty request, ServerCallContext context)
+        {
+            // Determinar centro: header tiene prioridad; si caller es Admin usar claim id_centro_medico; fallback=1
+            var isAdmin = false;
+            try
+            {
+                var http = context.GetHttpContext();
+                if (http != null)
+                {
+                    var user = http.User;
+                    isAdmin = user.IsInRole("Admin") || user.Claims.Any(c => c.Type == "rol_usuario" && c.Value == "Admin");
+                }
+                var rolHeader = context.RequestHeaders.Get("x-rol-usuario")?.Value;
+                if (!string.IsNullOrEmpty(rolHeader) && rolHeader == "Admin") isAdmin = true;
+            }
+            catch { }
+
+            int centroId = 1;
+            var centroHeader = context.RequestHeaders.Get("x-centro-medico")?.Value;
+            if (!string.IsNullOrEmpty(centroHeader) && int.TryParse(centroHeader, out var parsed)) centroId = parsed;
+
+            // Si es Admin y no hay header, intentar claim
+            if (isAdmin && (string.IsNullOrEmpty(centroHeader)))
+            {
+                try
+                {
+                    var http = context.GetHttpContext();
+                    var centroClaim = http?.User?.Claims?.FirstOrDefault(c => c.Type == "id_centro_medico")?.Value;
+                    if (!string.IsNullOrEmpty(centroClaim) && int.TryParse(centroClaim, out var parsedClaim)) centroId = parsedClaim;
+                }
+                catch { }
+            }
+
+            var response = new ConsultasListResponse();
+            try
+            {
+                using var db = _dbFactory.CreateForCentro(centroId);
+                var list = await db.ConsultasMedicas.ToListAsync();
+                foreach (var c in list)
+                {
+                    response.Consultas.Add(MapToResponse(c));
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new RpcException(new Status(StatusCode.Internal, $"Error al obtener consultas: {ex.Message}"));
+            }
+
+            return response;
+        }
+
+        public override async Task<ConsultaResponse> ObtenerConsultaPorId(ConsultaPorIdRequest request, ServerCallContext context)
+        {
+            int centroId = 1;
+            var centroHeader = context.RequestHeaders.Get("x-centro-medico")?.Value;
+            if (!string.IsNullOrEmpty(centroHeader) && int.TryParse(centroHeader, out var parsed)) centroId = parsed;
+
+            // Si no hay header, intentar claim
+            if (string.IsNullOrEmpty(centroHeader))
+            {
+                try
+                {
+                    var http = context.GetHttpContext();
+                    var centroClaim = http?.User?.Claims?.FirstOrDefault(c => c.Type == "id_centro_medico")?.Value;
+                    if (!string.IsNullOrEmpty(centroClaim) && int.TryParse(centroClaim, out var parsedClaim)) centroId = parsedClaim;
+                }
+                catch { }
+            }
+
+            using var db = _dbFactory.CreateForCentro(centroId);
+            var consulta = await db.ConsultasMedicas.FindAsync(request.IdConsultaMedica);
+            if (consulta == null)
+                throw new RpcException(new Status(StatusCode.NotFound, "Consulta no encontrada"));
+
             return MapToResponse(consulta);
         }
 

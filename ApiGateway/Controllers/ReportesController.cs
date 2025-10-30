@@ -75,9 +75,21 @@ namespace ApiGateway.Controllers
                     Diagnostico = request.Diagnostico ?? string.Empty
                 };
 
-                // Forzamos metadata para que el microservicio de Consultas genere un reporte global
-                var headers = new Metadata { { "x-rol-usuario", "Admin" } };
-                var response = await _consultasClient.ObtenerReporteConsultasPorMedicoAsync(grpcRequest, headers);
+                // Propagar el centro médico del usuario (si existe) para que Consultas consulte la BD correcta
+                Metadata? headers = null;
+                try
+                {
+                    var centroClaim = User.Claims.FirstOrDefault(c => c.Type == "id_centro_medico")?.Value;
+                    if (!string.IsNullOrEmpty(centroClaim))
+                    {
+                        headers = new Metadata { { "x-centro-medico", centroClaim } };
+                    }
+                }
+                catch { }
+
+                var response = headers != null
+                    ? await _consultasClient.ObtenerReporteConsultasPorMedicoAsync(grpcRequest, headers)
+                    : await _consultasClient.ObtenerReporteConsultasPorMedicoAsync(grpcRequest);
 
                 // Contar filtros activos
                 int filtrosActivos = 0;
